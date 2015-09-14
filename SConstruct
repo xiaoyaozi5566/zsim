@@ -55,7 +55,7 @@ def buildSim(cppFlags, dir, type, pgo=None):
         pinInclDir = joinpath(pinInclDir, "pin")
         assert os.path.exists(joinpath(pinInclDir, "pin.H"))
 
-    env["CPPPATH"] = [joinpath(PINPATH, "extras/xed2-intel64/include"),
+    env["CPPPATH"] = [joinpath(PINPATH, "extras/xed-intel64/include"),
             pinInclDir, joinpath(pinInclDir, "gen"),
             joinpath(PINPATH, "extras/components/include")]
 
@@ -80,7 +80,7 @@ def buildSim(cppFlags, dir, type, pgo=None):
     # systems, Pin's libelf takes precedence over the system's, but it does not
     # include symbols that we need or it's a different variant (we need
     # libelfg0-dev in Ubuntu systems)
-    env["PINLIBPATH"] = ["/usr/lib", "/usr/lib/x86_64-linux-gnu", joinpath(PINPATH, "extras/xed2-intel64/lib"),
+    env["PINLIBPATH"] = ["/usr/lib", "/usr/lib/x86_64-linux-gnu", joinpath(PINPATH, "extras/xed-intel64/lib"),
             joinpath(PINPATH, "intel64/lib"), joinpath(PINPATH, "intel64/lib-ext")]
 
     # Libdwarf is provided in static and shared variants, Ubuntu only provides
