@@ -28,6 +28,8 @@
 
 // Unconditional patches
 
+#define SYS_getcpu (168)
+
 // File system -- fs.cpp
 PF(SYS_open, PatchOpen);
 PF(SYS_openat, PatchOpen);
