@@ -108,6 +108,43 @@ class ZArray : public CacheArray {
         void initStats(AggregateStat* parentStat);
 };
 
+/* Partitioned ZCache */
+class ZArray_Par : public CacheArray {
+    private:
+        Address* array; //maps line id to address
+        uint32_t* domain_ID; //security domain ID for each cache line
+        uint32_t* lookupArray; //maps physical position to lineId
+        uint32_t line_counters[2];
+        ReplPolicy* rp;
+        HashFamily* hf;
+        uint32_t numLines;
+        uint32_t numSets;
+        uint32_t ways;
+        uint32_t cands;
+        uint32_t setMask;
+
+        //preinsert() stores the swaps that must be done here, postinsert() does the swaps
+        uint32_t* swapArray; //contains physical positions
+        uint32_t swapArrayLen; //set in preinsert()
+
+        uint32_t lastCandIdx;
+
+        Counter statSwaps;
+
+    public:
+        ZArray_Par(uint32_t _numLines, uint32_t _ways, uint32_t _candidates, ReplPolicy* _rp, HashFamily* _hf);
+
+        int32_t lookup(const Address lineAddr, const MemReq* req, bool updateReplacement);
+        uint32_t preinsert(const Address lineAddr, const MemReq* req, Address* wbLineAddr);
+        void postinsert(const Address lineAddr, const MemReq* req, uint32_t candidate);
+
+        //zcache-specific, since timing code needs to know the number of swaps, and these depend on idx
+        //Should be called after preinsert(). Allows intervening lookups
+        uint32_t getLastCandIdx() const {return lastCandIdx;}
+
+        void initStats(AggregateStat* parentStat);
+};
+
 // Simple wrapper classes and iterators for candidates in each case; simplifies replacement policy interface without sacrificing performance
 // NOTE: All must implement the same interface and be POD (we pass them by value)
 struct SetAssocCands {
@@ -132,8 +169,10 @@ struct ZWalkInfo {
     uint32_t pos;
     uint32_t lineId;
     int32_t parentIdx;
+    uint32_t domain_ID;
 
     inline void set(uint32_t p, uint32_t i, int32_t x) {pos = p; lineId = i; parentIdx = x;}
+    inline void set(uint32_t p, uint32_t i, int32_t x, uint32_t d) {pos = p; lineId = i; parentIdx = x; domain_ID = d;}
 };
 
 struct ZCands {
