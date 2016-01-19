@@ -1,0 +1,237 @@
+zsim.cpp
+    GlobSimInfo* zinfo
+    cids[tid]: the id of the core that thread tid is assigned to
+    cores[tid]: the pointer of the core that thread id is assigned to
+    
+    EnterFastForward()
+    ExitFastForward()
+    SimThreadStart()
+    SimThreadFini()
+    SimEnd()
+    FFI: instruction-based fast-forwarding
+    CheckForTermination()
+    SyscallEnter()
+    SyscallExit()
+    main() -> SimInit() (in init.cpp)
+        1. zinfo -> traceDriver -> executePhase(): Trace-driven simulation
+        2. PIN_StartProgram(): PIN-based simulation
+
+init.cpp
+    BuildCacheBank(): build the cache (cache organization, replacement policy, etc)
+    BuildDDRMemory()
+    BuildMemoryController()
+    BuildCacheGroup()
+    InitSystem(): call above functions to initialize the system
+    PreInitStats()
+    PostInitStats()
+    InitGlobalStats()
+    SimInit(): initialize parameters in zinfo, call InitSystem()
+
+cache.cpp
+    class Cache
+        access(): access the cache, handle cache misses
+        invalidate()
+
+cache_array
+    class CacheArray
+        lookup(): look up an address in the cache
+        preinsert(): find the replacement candidate
+        postinsert(): perform the actual insertion
+    
+    class SetAssocArray
+        lookup()
+        preinsert()
+        postinsert()
+    
+    class ZArray
+        lookup()
+        preinsert(): 
+            array -> address array
+            lookupArray -> the actual position of the array entries in the cache, we do swaps here
+        postinsert()
+
+ddr_mem
+    class Actwindow: a buffer that stores the next allowed cycle for an activation
+        init()
+        minActCycle()
+        addActivation()
+    
+    class RequestQueue
+        reqList -> list of requests
+        freeList -> list of free slots
+        init()
+        empty()
+        full()
+        size()
+        alloc()
+        remove()
+    
+    class DDRMemory
+        struct AddrLoc
+        struct Request
+        struct Bank
+        sysToMemCycle(): translate between CPU and memory frequencies
+        access()
+        enqueue()
+        refresh()
+        tick()
+        recycleEvent()
+        mapLineAddr()
+        queue()
+        trySchedule()
+        findMinCmdCycle()
+        initTech(): sets the timing parameters according to the technology
+    
+    class DDRMemoryAccEvent -> represents one read or write request
+    
+    class RefreshEvent -> scheduled every tREFI cycles
+    
+    class SchedEvent
+
+filter_cache
+    class FilterCache
+        setSourceId(): set the source (core) id
+        load(): a read request
+        store(): a write request
+        replace(): access lower level cache due to $L0 cache misses
+        invalidate(): invalidate a cache block
+    
+ideal_array
+    class IdealLRUArray(): fully associative array with LRU replacement policy
+    
+    class IdealLRUPartArray: partitioned fully associative array
+    
+    class IdealLRUPartReplPolicy: replacement policy for partitioned fully associative array
+
+lookahead
+    getMaxMarginalUtility()
+    computePartitioningTotalUtility()
+    computeBestPartitioning()
+    
+    class LookaheadPartitioner (in partitioner.h)
+        partition()
+
+mem_ctrls
+    class SimpleMemory(): memory with fixed latency
+        access()
+    
+    class MD1Memory: memory with M/D/1 queueing model
+        updateLatency()
+        access()
+
+moniter
+    class UMonMoniter(): UMON
+        access()
+        getNumAccesses()
+        get()
+        getMissCurves()
+        getMissCurve()
+        reset()
+
+part_repl_policies
+    class PartRepPolicy: replacement policy for partitioned cache
+        setPartitionSizes()
+        getMoniter()
+    
+    class WayPartReplPolicy()
+        initStats()
+        update()
+        startReplacement()
+        recordCandidate()
+        getBestCandidate()
+        replaced()
+        setPartitionSizes()
+    
+    class VantageReplPolicy: implement Vantage
+        initStats()
+        update()
+        startReplacement()
+        recordCandidate()
+        getBestCandidate()
+        replaced()
+        setPartitionSizes()
+        takeOneLine()
+
+partition_mapper
+    class PartMapper: map modules to different partitions
+        getNumPartitions()
+        getPartition()
+    
+    class CorePartMapper
+    
+    class InstrDataPartMapper
+    
+    class InstrDataCorePartMapper
+    
+    class ProcessPartMapper
+    
+    class InstrDataProcessPartMapper
+    
+    class ProcessGroupPartMapper
+
+prefetcher
+    class SetCounter
+    
+    class StreamPrefetcher
+        initStats()
+        access()
+        invalidate()
+
+repl_policies
+    class ReplPolicy
+        setCC()
+        update()
+        replaced()
+        randCands()
+        initStats()
+    
+    class LegacyReplPolicy
+    
+    class LRUReplPolicy: traditional LRU replacement policy
+    
+    class TreeLRUReplpolicy: use binary tree search for replacement policy
+    
+    class NRUReplPolicy
+    
+    class RandReplPolicy: random replacement policy
+    
+    class LFUReplPolicy: Least Frequenctly Used policy
+
+timing_cache
+    class TimingCache
+        initStats()
+        access()
+        simulateHit()
+        simulateMissStart()
+        simulateMissResponse()
+        simulateMissWriteback()
+        simulateReplAccess()
+        highPrioAccess()
+        tryLowPrioAccess()
+    
+    class HitEvent
+    
+    class MissStartEvent
+    
+    class MissResponseEvent
+    
+    class MissWritebackEvent
+    
+    class ReplAccessEvent
+    
+    class TimingEvent
+
+trace_driver
+    class TraceDriver: for trace-driven simulation
+        initStats()
+        setParent()
+        invalidate()
+        executePhase()
+        executeAccess()
+
+tracing_cache
+    class TracingCache: record the cache trace
+        setChildren()
+        access()
+        
+    
