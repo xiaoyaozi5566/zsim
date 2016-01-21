@@ -27,7 +27,10 @@
 #include "hash.h"
 
 Cache::Cache(uint32_t _numLines, CC* _cc, CacheArray* _array, ReplPolicy* _rp, uint32_t _accLat, uint32_t _invLat, const g_string& _name)
-    : cc(_cc), array(_array), rp(_rp), numLines(_numLines), accLat(_accLat), invLat(_invLat), name(_name) {}
+    : cc(_cc), array(_array), rp(_rp), numLines(_numLines), accLat(_accLat), invLat(_invLat), name(_name) {
+        totalMissLat = 0;
+        numMisses = 0;
+    }
 
 const char* Cache::getName() {
     return name.c_str();
@@ -58,6 +61,7 @@ uint64_t Cache::access(MemReq& req) {
     uint64_t respCycle = req.cycle;
     bool skipAccess = cc->startAccess(req); //may need to skip access due to races (NOTE: may change req.type!)
     bool directToCPU = false; //directly supply the data to CPU if cannot be cached
+    bool isMiss = false;
     if (likely(!skipAccess)) {
         bool updateReplacement = (req.type == GETS) || (req.type == GETX);
         int32_t lineId = array->lookup(req.lineAddr, &req, updateReplacement);
@@ -65,6 +69,7 @@ uint64_t Cache::access(MemReq& req) {
 
         if (lineId == -1 && cc->shouldAllocate(req)) {
             //Make space for new line
+            isMiss = true;
             Address wbLineAddr;
             lineId = array->preinsert(req.lineAddr, &req, &wbLineAddr); //find the lineId to replace
             //No available eviction candidates
@@ -80,9 +85,17 @@ uint64_t Cache::access(MemReq& req) {
             }
         }
 
-        if (!directToCPU) respCycle = cc->processAccess(req, lineId, respCycle);
+        if (directToCPU) 
+            respCycle += totalMissLat/numMisses;
+        else
+            respCycle = cc->processAccess(req, lineId, respCycle);
     }
-
+    
+    if (isMiss) 
+    {
+        totalMissLat += respCycle - req.cycle;
+        numMisses++;
+    }
     cc->endAccess(req);
 
     assert_msg(respCycle >= req.cycle, "[%s] resp < req? 0x%lx type %s childState %s, respCycle %ld reqCycle %ld",

@@ -124,6 +124,8 @@ uint64_t TimingCache::access(MemReq& req) {
     
     uint64_t respCycle = req.cycle;
     bool skipAccess = cc->startAccess(req); //may need to skip access due to races (NOTE: may change req.type!)
+    bool directToCPU = false; //directly supply the data to CPU if cannot be cached
+    bool isMiss = false;
     if (likely(!skipAccess)) {
         bool updateReplacement = (req.type == GETS) || (req.type == GETX);
         int32_t lineId = array->lookup(req.lineAddr, &req, updateReplacement);
@@ -133,26 +135,33 @@ uint64_t TimingCache::access(MemReq& req) {
             assert(cc->shouldAllocate(req)); //dsm: for now, we don't deal with non-inclusion in TimingCache
 
             //Make space for new line
+            isMiss = true;
             Address wbLineAddr;
             lineId = array->preinsert(req.lineAddr, &req, &wbLineAddr); //find the lineId to replace
-            trace(Cache, "[%s] Evicting 0x%lx", name.c_str(), wbLineAddr);
+            if (lineId == -1) directToCPU = true;
+            else{
+                trace(Cache, "[%s] Evicting 0x%lx", name.c_str(), wbLineAddr);
 
-            //Evictions are not in the critical path in any sane implementation -- we do not include their delays
-            //NOTE: We might be "evicting" an invalid line for all we know. Coherence controllers will know what to do
-            evDoneCycle = cc->processEviction(req, wbLineAddr, lineId, respCycle); //if needed, send invalidates/downgrades to lower level, and wb to upper level
+                //Evictions are not in the critical path in any sane implementation -- we do not include their delays
+                //NOTE: We might be "evicting" an invalid line for all we know. Coherence controllers will know what to do
+                evDoneCycle = cc->processEviction(req, wbLineAddr, lineId, respCycle); //if needed, send invalidates/downgrades to lower level, and wb to upper level
 
-            array->postinsert(req.lineAddr, &req, lineId); //do the actual insertion. NOTE: Now we must split insert into a 2-phase thing because cc unlocks us.
+                array->postinsert(req.lineAddr, &req, lineId); //do the actual insertion. NOTE: Now we must split insert into a 2-phase thing because cc unlocks us.
 
-            if (evRec->numRecords() > initialRecords) {
-                assert_msg(evRec->numRecords() == initialRecords + 1, "evRec records on eviction %ld", evRec->numRecords());
-                writebackRecord = evRec->getRecord(initialRecords);
-                hasWritebackRecord = true;
-                evRec->popRecord();
-            }
+                if (evRec->numRecords() > initialRecords) {
+                    assert_msg(evRec->numRecords() == initialRecords + 1, "evRec records on eviction %ld", evRec->numRecords());
+                    writebackRecord = evRec->getRecord(initialRecords);
+                    hasWritebackRecord = true;
+                    evRec->popRecord();
+                }
+            }     
         }
 
         uint64_t getDoneCycle = respCycle;
-        respCycle = cc->processAccess(req, lineId, respCycle, &getDoneCycle);
+        if (directToCPU)
+            respCycle += totalMissLat/numMisses;
+        else
+            respCycle = cc->processAccess(req, lineId, respCycle, &getDoneCycle);
 
         if (evRec->numRecords() > initialRecords) {
             assert_msg(evRec->numRecords() == initialRecords + 1, "evRec records %ld", evRec->numRecords());
@@ -164,6 +173,12 @@ uint64_t TimingCache::access(MemReq& req) {
         // At this point we have all the info we need to hammer out the timing record
         TimingRecord tr = {req.lineAddr << lineBits, req.cycle, respCycle, req.type, nullptr, nullptr}; //note the end event is the response, not the wback
 
+        if (directToCPU) {
+            MissStartEvent* mse = new (evRec) MissStartEvent(this, respCycle - req.cycle, domain);
+            MissResponseEvent* mre = new (evRec) MissResponseEvent(this, mse, domain);
+            tr.startEvent = mse;
+            tr.endEvent = mre;
+        }
         if (getDoneCycle - req.cycle == accLat) {
             // Hit
             assert(!hasWritebackRecord);
@@ -270,7 +285,12 @@ uint64_t TimingCache::access(MemReq& req) {
         }
         evRec->pushRecord(tr);
     }
-
+    
+    if (isMiss) 
+    {
+        totalMissLat += respCycle - req.cycle;
+        numMisses++;
+    }
     cc->endAccess(req);
 
     assert_msg(respCycle >= req.cycle, "[%s] resp < req? 0x%lx type %s childState %s, respCycle %ld reqCycle %ld",

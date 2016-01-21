@@ -52,6 +52,8 @@ class Cache : public BaseCache {
         //Latencies
         uint32_t accLat; //latency of a normal access (could split in get/put, probably not needed)
         uint32_t invLat; //latency of an invalidation
+        uint32_t totalMissLat; //average miss latency
+        uint32_t numMisses; //total number of misses
 
         g_string name;
 
