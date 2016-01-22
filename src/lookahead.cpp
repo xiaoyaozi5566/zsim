@@ -159,6 +159,6 @@ void LookaheadPartitioner::partition() {
     for (uint32_t i = 0; i < numPartitions; i++) info("buckets[%d] = %d", i, curAllocs[i]);
 #endif
 
-    repl->setPartitionSizes(curAllocs);
+    // repl->setPartitionSizes(curAllocs);
     repl->getMonitor()->reset();
 }
