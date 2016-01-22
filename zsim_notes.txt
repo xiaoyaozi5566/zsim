@@ -1,3 +1,122 @@
+Config options:
+sys
+    cores
+        type: Simple, Timing, OOO, Null
+        cores: number of cores
+        icache
+        dcache
+    
+    cache
+        type: Simple, TraceDriven, Timing, Tracing
+        array: cache array organization
+            ways: number of cache ways
+            type: SetAssoc, Z, IdealLRU, IdealLRUPart
+            candidates: number of candidates (for ZCache)
+            hash: H3, SHA1, None
+        repl: cache replacement policy
+            type: IdealLRUPart, LRU, LRUNosh, LFU, LRUProfViol, NRU, Rand, WayPart, Vantage
+            partMapper: Core, InstrData, InstrDataCore, Process, InstrDataProcess, ProcessGroup
+            umonLines
+            umonWays
+            buckets
+            testMode
+            smoothTransients
+            interval
+        latency
+        nonInclusiveHack: cache inclusion
+        mshrs: number of MSHRs
+        tagLat
+        timingCandidates
+        isPrefetcher
+        prefetchers
+        size
+        banks
+        caches: number of caches
+        parent: lower level memory
+
+    memory
+        ranksPerChannel
+        banksPerRank
+        pageSize
+        tech
+        addrMapping
+        deferWrites
+        closedPage
+        maxRowHits
+        queueDepth
+        controllerLatency
+
+    memory controller (sys.mem)
+        type: Simple, MD1, WeaveMD1, WeaveSimple, DDR, DRAMSim, Detailed
+        latency
+        bandwidth
+        boundLatency
+        capacityMB
+        techIni
+        systemIni
+        outputDir
+        traceName
+        controllers
+        splitAddrs
+
+    networkFile
+    linesize
+
+sim
+    traceFile
+    retraceFile
+    useSkews
+    playPuts
+    playAllGets
+    periodicStatsFilter
+    domains
+    contentionThreads
+    phaseLength
+    statsPhaseInterval
+    frequency
+    maxPhases
+    maxMinInstrs
+    maxTotalInstrs
+    maxSimTime
+    maxProcEventualDumps
+    skipStatsVectors
+    compactPeriodicStats
+    ignroeHooks
+    ffReinstrument
+    registerThreads
+    startInGlobalPause
+    parallelism
+    schedQuantum
+    blockingSyscalls
+    procStatsFilter
+    perProcessDir
+    perProcessCpuEnum
+    printMemoryStats
+    deadlockDetection
+    strictConfig
+    logToFile
+    pinOptions
+
+process
+    command
+    input
+    loader
+    env
+    patchRoot
+    groupWithPrevious
+    startFastForwarded
+    syncedFastForward
+    startPaused
+    clockDomain
+    portDomain
+    dumpHeartbeats
+    dumpsResetHeartbeats
+    dumpInstrs
+    restarts
+    syscallBlacklistRegex
+    mask
+    ffiPoints
+================================================================================================
 zsim.cpp
     GlobSimInfo* zinfo
     cids[tid]: the id of the core that thread tid is assigned to
