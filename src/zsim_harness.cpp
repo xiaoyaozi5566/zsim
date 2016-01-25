@@ -316,14 +316,15 @@ int main(int argc, char *argv[]) {
     info("Starting zsim, built %s (rev %s)", ZSIM_BUILDDATE, ZSIM_BUILDVERSION);
     startTime = time(nullptr);
 
-    if (argc != 2) {
-        info("Usage: %s config_file", argv[0]);
+    if (argc != 3) {
+        info("Usage: %s config_file output_dir", argv[0]);
         exit(1);
     }
 
     //Canonicalize paths --- because we change dirs, we deal in absolute paths
     const char* configFile = realpath(argv[1], nullptr);
-    const char* outputDir = getcwd(nullptr, 0); //already absolute
+    // const char* outputDir = getcwd(nullptr, 0); //already absolute
+    const char* outputDir = realpath(argv[2], nullptr);
 
     Config conf(configFile);
 
