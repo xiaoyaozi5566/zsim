@@ -26,3 +26,19 @@
 *.deppo
 *.pyc
 ./DRAMSim2/DRAMSim
+
+# Output files #
+*.out
+*.h5
+*.log
+*.err
+
+# Others #
+misc/
+heartbeat
+out.cfg
+.sconsign.dblite
+build/
+results/
+scriptgen/
+
