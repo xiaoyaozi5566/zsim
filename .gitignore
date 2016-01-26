@@ -1,0 +1,28 @@
+*.slo
+*.lo
+*.o
+*.fo
+*.os
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# Compiled source #
+# ###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.obj
+*.so
+*.dep
+*.deppo
+*.pyc
+./DRAMSim2/DRAMSim
