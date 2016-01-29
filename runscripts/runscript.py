@@ -167,6 +167,7 @@ def multiprogs():
         filename = p0 + "_" + p1 + ".sub"
         submit_file = open(scriptgen_dir + "/" + filename, "w")
         env = "Universe = Vanilla\n"
+        env += "getenv = True\n"
         env += "Executable = " + scriptgen_dir + "/" + p0 + "_" + p1 + ".sh\n"
         env += "Output = " + stdout_folder + "/" + p0 + "_" + p1 + ".out\n"
         env += "Error = " + stderr_folder + "/" + p0 + "_" + p1 + ".err\n"
