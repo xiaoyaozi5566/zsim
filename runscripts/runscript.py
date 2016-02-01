@@ -10,6 +10,9 @@ results_dir = zsim_home + "/results"
 stdout_dir = zsim_home + "/stdout"
 stderr_dir = zsim_home + "/stderr"
 
+techIni = "/home/yw438/zsim/DRAMSim2/ini/DDR3_micron_64M_8B_x4_sg15.ini"
+systemIni = "/home/yw438/zsim/DRAMSim2/system.ini.example"
+
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'astar', 'xalan']
 
 spectfp = ['bwaves', 'gamess', 'milc', 'zeusmp', 'gromacs', 'cactusADM', 'leslie3d', 'namd', 'dealII', 'soplex', 'povray', 'calculix', 'GemsFDTD', 'tonto', 'lbm', 'wrf']
@@ -68,6 +71,10 @@ multiprog = [['astar', 'bzip2'],
              ['sjeng', 'xalan'],
             ]
 
+test = [['bzip2', 'gcc'],]
+
+workloads = test
+
 if not os.path.exists(scriptgen_dir):
     os.makedirs(scriptgen_dir)
 
@@ -92,7 +99,7 @@ if not os.path.exists("stderr/" + folder):
     os.makedirs("stderr/" + folder)
 
 def multiprogs():
-    for workload in multiprog:
+    for workload in workloads:
         p0 = workload[0]
         p1 = workload[1]
         result_folder = "results/" + folder + "/" + p0 + "_" + p1
@@ -139,7 +146,7 @@ def multiprogs():
         config += "    };\n"
         config += "    mem = {\n"
         config += "        controllers = 2;\n"
-        config += "        type = \"DDR\"\n";
+        config += "        type = \"DDR\"\n"
         config += "    };\n"
         config += "};\n\n"
         config += "process0 = {\n"
@@ -177,25 +184,96 @@ def multiprogs():
         submit_file.write("%s\n" % env)
         submit_file.close()
 
-multiprogs()
+def multiprogs_DRAMSim2():
+    for workload in workloads:
+        p0 = workload[0]
+        p1 = workload[1]
+        result_folder = "results/" + folder + "/" + p0 + "_" + p1
+        stdout_folder = "stdout/" + folder + "/" + p0 + "_" + p1
+        stderr_folder = "stderr/" + folder + "/" + p0 + "_" + p1
+        if not os.path.exists(result_folder):
+            os.makedirs(result_folder)
+        if not os.path.exists(stdout_folder):
+            os.makedirs(stdout_folder)
+        if not os.path.exists(stderr_folder):
+            os.makedirs(stderr_folder)
+        # create config file
+        filename = p0 + "_" + p1 + ".cfg"
+        config_file = open(scriptgen_dir + "/" + filename, "w")
+        config =  "sim = {\n"
+        config += "    phaseLength = 10000;\n"
+        config += "    statsPhaseInterval = 1;\n};\n\n"
+        config += "sys = {\n"
+        config += "    frequency = 2400;\n"
+        config += "    lineSize = 64;\n"
+        config += "    cores = {\n"
+        config += "        nehalem = {\n"
+        config += "            type = \"OOO\";\n"
+        config += "            cores = 2;\n"
+        config += "            icache = \"l1\";\n"
+        config += "            dcache = \"l1\";\n"
+        config += "        };\n"
+        config += "    };\n\n"
+        config += "    caches = {\n"
+        config += "        l1 = {\n"
+        config += "            size = 32768;\n"
+        config += "            caches = 4;\n"
+        config += "            parent = \"l2\";\n"
+        config += "        };\n\n"
+        config += "        l2 = {\n"
+        config += "            size = 1048576;\n"
+        config += "            caches = 1;\n"
+        config += "            array = {\n"
+        config += "                ways = 16;\n"
+        config += "                hash = \"None\";\n"
+        config += "            };\n"
+        config += "            parent = \"mem\";\n"
+        config += "        };\n\n"
+        config += "    };\n"
+        config += "    mem = {\n"
+        config += "        controllers = 1;\n"
+        config += "        type = \"DRAMSim\";\n"
+        config += "        techIni = \"" + techIni + "\";\n"
+        config += "        systemIni = \"" + systemIni + "\";\n"
+        config += "        outputDir = \"results/" + folder + "\";\n"
+        config += "        traceName = \"" + p0 + "_" + p1 + "\";\n"
+        config += "    };\n"
+        config += "};\n\n"
+        config += "process0 = {\n"
+        config += "    command = \"" + specinvoke[p0] + "\";\n"
+        config += "    startFastForwarded = True;\n"
+        config += "    ffiPoints = \"200000000 100000000\";\n"
+        config += "};\n\n"
+        config += "process1 = {\n"
+        config += "    command = \"" + specinvoke[p1] + "\";\n"
+        config += "    startFastForwarded = True;\n"
+        config += "    ffiPoints = \"200000000 100000000\";\n"
+        config += "};\n\n"
         
+        config_file.write("%s\n" % config)
+        config_file.close()
+        # create run script
+        filename = p0 + "_" + p1 + ".sh"
+        bash_file = open(scriptgen_dir + "/" + filename, "w")
+        command = "#!/bin/bash\n\n"
+        command += "build/opt/zsim " + scriptgen_dir + "/" + p0 + "_" + p1 + ".cfg " + result_folder + "\n"
         
+        bash_file.write("%s\n" % command)
+        bash_file.close()
+        # create submit script
+        filename = p0 + "_" + p1 + ".sub"
+        submit_file = open(scriptgen_dir + "/" + filename, "w")
+        env = "Universe = Vanilla\n"
+        env += "getenv = True\n"
+        env += "Executable = " + scriptgen_dir + "/" + p0 + "_" + p1 + ".sh\n"
+        env += "Output = " + stdout_folder + "/" + p0 + "_" + p1 + ".out\n"
+        env += "Error = " + stderr_folder + "/" + p0 + "_" + p1 + ".err\n"
+        env += "Log = " + stderr_folder + "/" + p0 + "_" + p1 + ".log\n"
+        env += "Queue\n"
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        submit_file.write("%s\n" % env)
+        submit_file.close()
+
+# call the function        
+# multiprogs()
+multiprogs_DRAMSim2()

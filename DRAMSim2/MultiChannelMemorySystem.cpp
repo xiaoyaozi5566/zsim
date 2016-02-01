@@ -207,7 +207,8 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 
 		if (!visFilename)
 		{
-			path = "results/";
+            // path = "results/";
+            path = "";
 			// chop off the .ini if it's there
 			if (deviceIniFilename.substr(deviceIniFilenameLength-4) == ".ini")
 			{
@@ -298,7 +299,8 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 		dramsimLogFilename += "."+sim_description_str; 
 	}
 	
-	dramsimLogFilename = FilenameWithNumberSuffix(dramsimLogFilename, ".log"); 
+	dramsimLogFilename = pwd + "/" + traceFilename + "/" + dramsimLogFilename;
+    dramsimLogFilename = FilenameWithNumberSuffix(dramsimLogFilename, ".log"); 
 
 	dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
 
