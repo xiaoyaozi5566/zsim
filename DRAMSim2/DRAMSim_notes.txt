@@ -1,0 +1,117 @@
+MultiChannelMemorySystem
+    class MultiChannelMemorySystem
+        addTransaction(): call channels[channelNumber]->addTransaction()
+        WillAcceptTransaction(): call channels[channelNumber]->WillAcceptTransaction()
+        update(): clockDomainCrosser.update()
+        printStats(): call channel->printStats()
+        getLogFile()
+        RegisterCallbacks(): call channel->RegisterCallbacks()
+        getIniBool()
+        getIniUnit()
+        getIniFloat()
+        InitOutputFiles(): create output files .log .vis. tmp
+        setCPUClockSpeed(): set DRAM and CPU frequencies
+        findChannelNumber(): find the channel number for an address
+        actual_update(): update each channel, print stats after each epoch
+        MultiChannelMemorySystem(): initialize parameters, read ini files
+    
+    getMemorySystemInstance(): create a multi channel memory system
+
+AddressMapping
+    addressMapping(): defines the address mapping, 7 schemes available
+
+Bank
+    class Bank
+        read(): read a data from a bank
+        write(): write a data to a bank
+        searchForRow(): search for a specific row
+
+BankState
+    struct CurrentBankState: Idle, RowActive, Precharging, Refreshing, PowerDown
+    class BankState
+        BankState()
+        print(): print bank current state
+
+BusPacket
+    enum BusPacketType: READ, READ_P, WRITE, WRITE_P, ACTIVATE, PRECHARGE, REFRESH, DATA
+    class BusPacket
+        BusPacket()
+        column, row, bank, rank, physicalAddress, data
+        print(): print packet
+        printData(): print data
+
+clockDomain
+    class ClockDomainCrosser
+        update(): update clock domains at different frequencies
+
+Rank
+    class Rank
+        Rank()
+        receiveFromBus(): handle different bus packets
+        attachMemoryController()
+        getId()
+        setId()
+        update(): handle sending data back to memory controller
+        powerUp(): power up the rank
+        powerDown(): power down the rank
+
+SimulatorObject
+    class SimulatorObject
+        step(): increment the time by one cycle
+        update()
+
+Transaction
+    enum TransactionType: DATA_READ, DATA_WRITE, RETURN_DATA
+    class Transaction
+        Transaction()
+        getBusPacketType(): decide BusPacketType based on TransactionType and page policy
+
+iniReader
+    class IniReader
+        SetKey(): set the value of a specific key
+        OverrideKeys(): override some keys
+        ReadIniFile(): read configuration file and set parameters
+        InitEnumsFromStrings(): init some enum type parameters
+        CheckIfAllSet(): check to make sure all parameters are set
+        WriteValuesOut(): call WriteParams() on SYS and DEV parameters
+        getBool()
+        getUint()
+        getUint64()
+        getFloat()
+        WriteParams(): write parameters to output file
+        Trim()
+
+MemorySystem
+    class MemorySystem: a channel is an instance of MemorySystem
+        MemorySystem(): calculate number of ranks, create memory controller
+        update(): update each rank, process pending transactions
+        addTransaction(): create a transaction, add to memory controller if possible, otherwise pending
+        printStats(): call MemoryController->printStats()
+        WillAcceptTransaction(): call MemoryController->WillAcceptTransaction
+        RegisterCallbacks()
+
+MemoryController
+    class MemoryController
+        addTransaction(): add transaction to queue based on WillAcceptTransaction()
+        WillAcceptTransaction(): check if transaction queue is full
+        returnReadData(): call the ReadCB, send read data back to CPU
+        receiveFromBus(): receive data packet from rank, put the packet into returnTransaction
+        attachRanks(): attach ranks to this memory controller
+        update(): simulate one cycle in memory controller
+        printStats()
+        resetStats()
+        insertHistogram(): inserts a latency into the latency histogram
+
+CommandQueue
+    class CommandQueue
+        CommandQueue(): decide queueing structure
+        enqueue(): adds a command to the appropriate queue
+        pop(): removes the next item from the command queue based on scheduling policy
+        hasRoomFor(): check if a queue has room for some number of commands
+        isIssuable(): check if a command is issuable
+        isEmpty(): check if a specific queue is empty
+        needRefresh(): set a particular rank in need of a refresh
+        print()
+        update()
+        getCommandQueue(): get the queue for a specific rank/bank
+        nextRankAndBank(): get the next queue in round-robin fashion
