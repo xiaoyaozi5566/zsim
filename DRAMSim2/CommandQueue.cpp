@@ -46,9 +46,10 @@
 
 using namespace DRAMSim;
 
-CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log_) :
+CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log_, unsigned num_pids_) :
 		dramsim_log(dramsim_log_),
 		bankStates(states),
+        num_pids(num_pids_),
 		nextBank(0),
 		nextRank(0),
 		nextBankPRE(0),
@@ -70,6 +71,10 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 	{
 		numBankQueues = NUM_BANKS;
 	}
+    else if (queuingStructure==PerRankPerDomain)
+    {
+        numBankQueues = num_pids;
+    }
 	else
 	{
 		ERROR("== Error - Unknown queuing structure");
@@ -555,9 +560,9 @@ bool CommandQueue::pop(BusPacket **busPacket)
 }
 
 //check if a rank/bank queue has room for a certain number of bus packets
-bool CommandQueue::hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank)
+bool CommandQueue::hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank_or_domain)
 {
-	vector<BusPacket *> &queue = getCommandQueue(rank, bank); 
+	vector<BusPacket *> &queue = getCommandQueue(rank, bank_or_domain); 
 	return (CMD_QUEUE_DEPTH - queue.size() >= numberToEnqueue);
 }
 
@@ -603,16 +608,20 @@ void CommandQueue::print()
  * don't always have a per bank queuing structure, sometimes the bank
  * argument is ignored (and the 0th index is returned 
  */
-vector<BusPacket *> &CommandQueue::getCommandQueue(unsigned rank, unsigned bank)
+vector<BusPacket *> &CommandQueue::getCommandQueue(unsigned rank, unsigned bank_or_domain)
 {
 	if (queuingStructure == PerRankPerBank)
 	{
-		return queues[rank][bank];
+		return queues[rank][bank_or_domain];
 	}
 	else if (queuingStructure == PerRank)
 	{
 		return queues[rank][0];
 	}
+    else if (queuingStructure == PerRankPerDomain)
+    {
+        return queues[rank][bank_or_domain];
+    }
 	else
 	{
 		ERROR("Unknown queue structure");
@@ -698,12 +707,20 @@ bool CommandQueue::isEmpty(unsigned rank)
 	}
 	else if (queuingStructure == PerRankPerBank)
 	{
-		for (size_t i=0;i<NUM_BANKS;i++)
+		for (unsigned i=0;i<NUM_BANKS;i++)
 		{
 			if (!queues[rank][i].empty()) return false;
 		}
 		return true;
 	}
+    else if (queuingStructure == PerRankPerDomain)
+    {
+		for (unsigned i=0;i<num_pids;i++)
+		{
+			if (!queues[rank][i].empty()) return false;
+		}
+		return true;
+    }
 	else
 	{
 		DEBUG("Invalid Queueing Stucture");

@@ -54,32 +54,34 @@ namespace DRAMSim
 class CommandQueue : public SimulatorObject
 {
 	CommandQueue();
-	ostream &dramsim_log;
 public:
+    ostream &dramsim_log;
 	//typedefs
 	typedef vector<BusPacket *> BusPacket1D;
 	typedef vector<BusPacket1D> BusPacket2D;
 	typedef vector<BusPacket2D> BusPacket3D;
 
 	//functions
-	CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log);
+	CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log, unsigned num_pids);
 	virtual ~CommandQueue(); 
 
-	void enqueue(BusPacket *newBusPacket);
+	virtual void enqueue(BusPacket *newBusPacket);
 	bool pop(BusPacket **busPacket);
-	bool hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank);
+	bool hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank_or_domain);
 	bool isIssuable(BusPacket *busPacket);
 	bool isEmpty(unsigned rank);
 	void needRefresh(unsigned rank);
-	void print();
+	virtual void print();
 	void update(); //SimulatorObject requirement
-	vector<BusPacket *> &getCommandQueue(unsigned rank, unsigned bank);
+	virtual vector<BusPacket *> &getCommandQueue(unsigned rank, unsigned bank_or_domain);
 
 	//fields
 	
 	BusPacket3D queues; // 3D array of BusPacket pointers
 	vector< vector<BankState> > &bankStates;
-private:
+protected:
+    unsigned num_pids;
+    
 	void nextRankAndBank(unsigned &rank, unsigned &bank);
 	//fields
 	unsigned nextBank;

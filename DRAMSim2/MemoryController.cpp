@@ -63,7 +63,7 @@ using namespace DRAMSim;
 MemoryController::MemoryController(MemorySystem *parent, CSVWriter &csvOut_, ostream &dramsim_log_) :
 		dramsim_log(dramsim_log_),
 		bankStates(NUM_RANKS, vector<BankState>(NUM_BANKS, dramsim_log)),
-		commandQueue(bankStates, dramsim_log_),
+		commandQueue(bankStates, dramsim_log_, 2),
 		poppedBusPacket(NULL),
 		csvOut(csvOut_),
 		totalTransactions(0),

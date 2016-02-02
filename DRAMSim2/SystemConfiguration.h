@@ -171,7 +171,8 @@ enum RowBufferPolicy
 enum QueuingStructure
 {
 	PerRank,
-	PerRankPerBank
+	PerRankPerBank,
+    PerRankPerDomain
 };
 
 enum SchedulingPolicy

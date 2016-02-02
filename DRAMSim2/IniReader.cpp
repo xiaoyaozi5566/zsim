@@ -612,6 +612,14 @@ void IniReader::InitEnumsFromStrings()
 			DEBUG("QUEUING STRUCT: per rank");
 		}
 	}
+    else if (QUEUING_STRUCTURE == "per_rank_per_domain")
+    {
+        queuingStructure = PerRankPerDomain;
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("QUEUING STRUCT: per rank per domain");
+		}
+    }
 	else
 	{
 		cout << "WARNING: Unknown queueing structure '"<<QUEUING_STRUCTURE<<"'; valid options are 'per_rank' and 'per_rank_per_bank', defaulting to Per Rank Per Bank"<<endl;
