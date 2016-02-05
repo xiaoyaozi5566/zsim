@@ -41,11 +41,12 @@ class DRAMSimAccEvent : public TimingEvent {
         DRAMSimMemory* dram;
         bool write;
         Address addr;
+        uint32_t srcId;
 
     public:
         uint64_t sCycle;
 
-        DRAMSimAccEvent(DRAMSimMemory* _dram, bool _write, Address _addr, int32_t domain) :  TimingEvent(0, 0, domain), dram(_dram), write(_write), addr(_addr) {}
+        DRAMSimAccEvent(DRAMSimMemory* _dram, bool _write, Address _addr, int32_t domain, uint32_t _srcId) :  TimingEvent(0, 0, domain), dram(_dram), write(_write), addr(_addr), srcId(_srcId) {}
 
         bool isWrite() const {
             return write;
@@ -53,6 +54,10 @@ class DRAMSimAccEvent : public TimingEvent {
 
         Address getAddr() const {
             return addr;
+        }
+
+        uint32_t getSrcID() const {
+            return srcId;
         }
 
         void simulate(uint64_t startCycle) {
@@ -114,7 +119,8 @@ uint64_t DRAMSimMemory::access(MemReq& req) {
     if ((req.type != PUTS /*discard clean writebacks*/) && zinfo->eventRecorders[req.srcId]) {
         Address addr = req.lineAddr << lineBits;
         bool isWrite = (req.type == PUTX);
-        DRAMSimAccEvent* memEv = new (zinfo->eventRecorders[req.srcId]) DRAMSimAccEvent(this, isWrite, addr, domain);
+        DRAMSimAccEvent* memEv = new (zinfo->eventRecorders[req.srcId]) DRAMSimAccEvent(this, isWrite, addr, domain, req.srcId);
+        // info("packet domain %d", req.srcId);
         memEv->setMinStartCycle(req.cycle);
         TimingRecord tr = {addr, req.cycle, respCycle, req.type, memEv, memEv};
         zinfo->eventRecorders[req.srcId]->pushRecord(tr);
@@ -131,7 +137,7 @@ uint32_t DRAMSimMemory::tick(uint64_t cycle) {
 
 void DRAMSimMemory::enqueue(DRAMSimAccEvent* ev, uint64_t cycle) {
     //info("[%s] %s access to %lx added at %ld, %ld inflight reqs", getName(), ev->isWrite()? "Write" : "Read", ev->getAddr(), cycle, inflightRequests.size());
-    dramCore->addTransaction(ev->isWrite(), ev->getAddr());
+    dramCore->addTransaction(ev->isWrite(), ev->getAddr(), ev->getSrcID());
     inflightRequests.insert(std::pair<Address, DRAMSimAccEvent*>(ev->getAddr(), ev));
     ev->hold();
 }

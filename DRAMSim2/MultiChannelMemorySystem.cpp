@@ -443,10 +443,10 @@ bool MultiChannelMemorySystem::addTransaction(Transaction *trans)
 	return channels[channelNumber]->addTransaction(trans); 
 }
 
-bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
+bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr, uint32_t srcId)
 {
 	unsigned channelNumber = findChannelNumber(addr); 
-	return channels[channelNumber]->addTransaction(isWrite, addr); 
+	return channels[channelNumber]->addTransaction(isWrite, addr, srcId); 
 }
 
 /*

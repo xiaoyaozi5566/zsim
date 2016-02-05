@@ -552,7 +552,8 @@ int main(int argc, char **argv)
 				if (line.size() > 0)
 				{
 					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
-					trans = new Transaction(transType, addr, data);
+					// Yao: needs to get the corrent srcId for trace-based simulation
+					trans = new Transaction(transType, addr, data, 0);
 					alignTransactionAddress(*trans); 
 
 					if (i>=clockCycle)

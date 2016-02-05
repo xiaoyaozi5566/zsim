@@ -43,10 +43,11 @@ using std::dec;
 
 namespace DRAMSim {
 
-Transaction::Transaction(TransactionType transType, uint64_t addr, void *dat) :
+Transaction::Transaction(TransactionType transType, uint64_t addr, void *dat, uint32_t _srcId) :
 	transactionType(transType),
 	address(addr),
-	data(dat)
+	data(dat),
+	srcId(_srcId)
 {}
 
 Transaction::Transaction(const Transaction &t)
@@ -55,6 +56,7 @@ Transaction::Transaction(const Transaction &t)
 	  , data(NULL)
 	  , timeAdded(t.timeAdded)
 	  , timeReturned(t.timeReturned)
+	  , srcId(t.srcId)
 {
 	#ifndef NO_STORAGE
 	ERROR("Data storage is really outdated and these copies happen in an \n improper way, which will eventually cause problems. Please send an \n email to dramninjas [at] gmail [dot] com if you need data storage");
