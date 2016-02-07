@@ -71,7 +71,7 @@ public:
 
 
 	//fields
-	vector <Transaction *> transactionQueue;
+	vector< vector <Transaction *> > transactionQueues;
 private:
 	ostream &dramsim_log;
 	vector< vector <BankState> > bankStates;
@@ -87,7 +87,7 @@ private:
 	vector<BusPacket *> writeDataToSend;
 	vector<unsigned> writeDataCountdown;
 	vector<Transaction *> returnTransaction;
-	vector<Transaction *> pendingReadTransactions;
+	vector< vector<Transaction *> > pendingReadTransactions;
 	map<unsigned,unsigned> latencies; // latencyValue -> latencyCount
 	vector<bool> powerDown;
 
