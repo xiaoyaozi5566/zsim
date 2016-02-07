@@ -57,7 +57,7 @@ class MemoryController : public SimulatorObject
 
 public:
 	//functions
-	MemoryController(MemorySystem* ms, CSVWriter &csvOut_, ostream &dramsim_log_);
+	MemoryController(MemorySystem* ms, unsigned num_pids, CSVWriter &csvOut_, ostream &dramsim_log_);
 	virtual ~MemoryController();
 
 	bool addTransaction(Transaction *trans);

@@ -73,7 +73,8 @@ DRAMSimMemory::DRAMSimMemory(string& dramTechIni, string& dramSystemIni, string&
     curCycle = 0;
     minLatency = _minLatency;
     // NOTE: this will alloc DRAM on the heap and not the glob_heap, make sure only one process ever handles this
-    dramCore = getMemorySystemInstance(dramTechIni, dramSystemIni, outputDir, traceName, capacityMB);
+    // Yao: need to add num_pids from cfg file
+    dramCore = getMemorySystemInstance(dramTechIni, dramSystemIni, outputDir, traceName, capacityMB, 2);
     dramCore->setCPUClockSpeed(cpuFreqHz);
 
     TransactionCompleteCB *read_cb = new Callback<DRAMSimMemory, void, unsigned, uint64_t, uint64_t>(this, &DRAMSimMemory::DRAM_read_return_cb);

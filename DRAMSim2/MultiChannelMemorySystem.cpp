@@ -43,8 +43,8 @@
 using namespace DRAMSim; 
 
 
-MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilename_, const string &systemIniFilename_, const string &pwd_, const string &traceFilename_, unsigned megsOfMemory_, string *visFilename_, const IniReader::OverrideMap *paramOverrides)
-	:megsOfMemory(megsOfMemory_), deviceIniFilename(deviceIniFilename_),
+MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilename_, const string &systemIniFilename_, const string &pwd_, const string &traceFilename_, unsigned megsOfMemory_, unsigned num_pids_, string *visFilename_, const IniReader::OverrideMap *paramOverrides)
+	:megsOfMemory(megsOfMemory_), num_pids(num_pids_), deviceIniFilename(deviceIniFilename_),
 	systemIniFilename(systemIniFilename_), traceFilename(traceFilename_),
 	pwd(pwd_), visFilename(visFilename_), 
 	clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update)),
@@ -96,7 +96,7 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 	}
 	for (size_t i=0; i<NUM_CHANS; i++)
 	{
-		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, (*csvOut), dramsim_log);
+		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, num_pids, (*csvOut), dramsim_log);
 		channels.push_back(channel);
 	}
 }
@@ -534,8 +534,8 @@ int MultiChannelMemorySystem::getIniFloat(const std::string& field, float *val)
 }
 
 namespace DRAMSim {
-MultiChannelMemorySystem *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, string *visfilename) 
+MultiChannelMemorySystem *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, unsigned num_pids, string *visfilename) 
 {
-	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory, visfilename);
+	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory, num_pids, visfilename);
 }
 }
