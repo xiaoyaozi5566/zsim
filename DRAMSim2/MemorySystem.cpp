@@ -171,9 +171,9 @@ MemorySystem::~MemorySystem()
 	}
 }
 
-bool MemorySystem::WillAcceptTransaction()
+bool MemorySystem::WillAcceptTransaction(uint32_t srcId)
 {
-	return memoryController->WillAcceptTransaction();
+	return memoryController->WillAcceptTransaction(srcId);
 }
 
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr, uint32_t srcId)
@@ -183,7 +183,7 @@ bool MemorySystem::addTransaction(bool isWrite, uint64_t addr, uint32_t srcId)
 	// push_back in memoryController will make a copy of this during
 	// addTransaction so it's kosher for the reference to be local 
 
-	if (memoryController->WillAcceptTransaction()) 
+	if (memoryController->WillAcceptTransaction(srcId)) 
 	{
 		return memoryController->addTransaction(trans);
 	}
@@ -220,7 +220,7 @@ void MemorySystem::update()
 	}
 
 	//pendingTransactions will only have stuff in it if MARSS is adding stuff
-	if (pendingTransactions.size() > 0 && memoryController->WillAcceptTransaction())
+	if (pendingTransactions.size() > 0 && memoryController->WillAcceptTransaction(0))
 	{
 		memoryController->addTransaction(pendingTransactions.front());
 		pendingTransactions.pop_front();

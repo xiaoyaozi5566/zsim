@@ -61,7 +61,7 @@ public:
 	bool addTransaction(Transaction *trans);
 	bool addTransaction(bool isWrite, uint64_t addr, uint32_t srcId);
 	void printStats(bool finalStats);
-	bool WillAcceptTransaction();
+	bool WillAcceptTransaction(uint32_t srcId);
 	void RegisterCallbacks(
 	    Callback_t *readDone,
 	    Callback_t *writeDone,

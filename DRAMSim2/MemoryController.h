@@ -61,7 +61,7 @@ public:
 	virtual ~MemoryController();
 
 	bool addTransaction(Transaction *trans);
-	bool WillAcceptTransaction();
+	bool WillAcceptTransaction(uint32_t srcId);
 	void returnReadData(const Transaction *trans);
 	void receiveFromBus(BusPacket *bpacket);
 	void attachRanks(vector<Rank *> *ranks);
@@ -71,7 +71,7 @@ public:
 
 
 	//fields
-	vector<Transaction *> transactionQueue;
+	vector <Transaction *> transactionQueue;
 private:
 	ostream &dramsim_log;
 	vector< vector <BankState> > bankStates;

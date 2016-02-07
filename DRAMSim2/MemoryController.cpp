@@ -760,7 +760,7 @@ void MemoryController::update()
 
 }
 
-bool MemoryController::WillAcceptTransaction()
+bool MemoryController::WillAcceptTransaction(uint32_t srcId)
 {
 	return transactionQueue.size() < TRANS_QUEUE_DEPTH;
 }
@@ -768,7 +768,7 @@ bool MemoryController::WillAcceptTransaction()
 //allows outside source to make request of memory system
 bool MemoryController::addTransaction(Transaction *trans)
 {
-	if (WillAcceptTransaction())
+	if (WillAcceptTransaction(0))
 	{
 		trans->timeAdded = currentClockCycle;
 		transactionQueue.push_back(trans);

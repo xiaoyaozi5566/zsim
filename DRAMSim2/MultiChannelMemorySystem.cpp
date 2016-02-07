@@ -462,13 +462,13 @@ bool MultiChannelMemorySystem::willAcceptTransaction(uint64_t addr)
 {
 	unsigned chan, rank,bank,row,col; 
 	addressMapping(addr, chan, rank, bank, row, col); 
-	return channels[chan]->WillAcceptTransaction(); 
+	return channels[chan]->WillAcceptTransaction(0); 
 }
 
 bool MultiChannelMemorySystem::willAcceptTransaction()
 {
 	for (size_t c=0; c<NUM_CHANS; c++) {
-		if (!channels[c]->WillAcceptTransaction())
+		if (!channels[c]->WillAcceptTransaction(0))
 		{
 			return false; 
 		}
