@@ -137,6 +137,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
 {
 	unsigned rank = newBusPacket->rank;
 	unsigned bank = newBusPacket->bank;
+    unsigned srcId = newBusPacket->srcId;
 	if (queuingStructure==PerRank)
 	{
 		queues[rank][0].push_back(newBusPacket);
@@ -157,6 +158,16 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
 			exit(0);
 		}
 	}
+    else if (queuingStructure==PerRankPerDomain)
+    {
+        queues[rank][srcId].push_back(newBusPacket);
+		if (queues[rank][srcId].size()>CMD_QUEUE_DEPTH)
+		{
+			ERROR("== Error - Enqueued more than allowed in command queue");
+			ERROR("						Need to call .hasRoomFor(int numberToEnqueue, unsigned rank, unsigned bank) first");
+			exit(0);
+		}
+    }
 	else
 	{
 		ERROR("== Error - Unknown queuing structure");
@@ -246,7 +257,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			//	reset flags and rank pointer
 			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
 			{
-				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, dramsim_log);
+				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);
 				refreshRank = -1;
 				refreshWaiting = false;
 				sendingREF = true;
@@ -380,7 +391,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 					if (closeRow && currentClockCycle >= bankStates[refreshRank][b].nextPrecharge)
 					{
 						rowAccessCounters[refreshRank][b]=0;
-						*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, refreshRank, b, 0, dramsim_log);
+						*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, refreshRank, b, 0, 0, dramsim_log);
 						sendingREForPRE = true;
 					}
 					break;
@@ -399,7 +410,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			//	reset flags and rank pointer
 			if (sendREF && bankStates[refreshRank][0].currentBankState != PowerDown)
 			{
-				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, dramsim_log);
+				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);
 				refreshRank = -1;
 				refreshWaiting = false;
 				sendingREForPRE = true;
@@ -521,7 +532,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 							{
 								sendingPRE = true;
 								rowAccessCounters[nextRankPRE][nextBankPRE] = 0;
-								*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, nextRankPRE, nextBankPRE, 0, dramsim_log);
+								*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, nextRankPRE, nextBankPRE, 0, 0, dramsim_log);
 								break;
 							}
 						}

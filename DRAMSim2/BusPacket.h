@@ -62,11 +62,12 @@ public:
 	unsigned row;
 	unsigned bank;
 	unsigned rank;
+    unsigned srcId;
 	uint64_t physicalAddress;
 	void *data;
 
 	//Functions
-	BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, ostream &dramsim_log_);
+	BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, unsigned id, void *dat, ostream &dramsim_log_);
 
 	void print();
 	void print(uint64_t currentClockCycle, bool dataStart);
