@@ -46,10 +46,11 @@
 
 using namespace DRAMSim;
 
-CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log_, unsigned num_pids_) :
+CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log_, unsigned num_pids_, unsigned turn_length_) :
 		dramsim_log(dramsim_log_),
 		bankStates(states),
         num_pids(num_pids_),
+        turn_length(turn_length_),
 		nextBank(0),
 		nextRank(0),
 		nextBankPRE(0),
@@ -99,7 +100,14 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 		queues.push_back(perBankQueue);
 	}
 
-
+    for (size_t i=0;i<2;i++)
+    {
+        BusPacket1D perRankQueue = BusPacket1D();
+        cmdBuffer.push_back(perRankQueue);
+        vector<unsigned> perRankTime;
+        issue_time.push_back(perRankTime);
+    }
+        
 	//FOUR-bank activation window
 	//	this will count the number of activations within a given window
 	//	(decrementing counter)
@@ -209,137 +217,217 @@ bool CommandQueue::pop(BusPacket **busPacket)
 
 	if (rowBufferPolicy==ClosePage)
 	{
-		bool sendingREF = false;
-		//if the memory controller set the flags signaling that we need to issue a refresh
-		if (refreshWaiting)
-		{
-			bool foundActiveOrTooEarly = false;
-			//look for an open bank
-			for (size_t b=0;b<NUM_BANKS;b++)
-			{
-				vector<BusPacket *> &queue = getCommandQueue(refreshRank,b);
-				//checks to make sure that all banks are idle
-				if (bankStates[refreshRank][b].currentBankState == RowActive)
-				{
-					foundActiveOrTooEarly = true;
-					//if the bank is open, make sure there is nothing else
-					// going there before we close it
-					for (size_t j=0;j<queue.size();j++)
-					{
-						BusPacket *packet = queue[j];
-						if (packet->row == bankStates[refreshRank][b].openRowAddress &&
-								packet->bank == b)
-						{
-							if (packet->busPacketType != ACTIVATE && isIssuable(packet))
-							{
-								*busPacket = packet;
-								queue.erase(queue.begin() + j);
-								sendingREF = true;
-							}
-							break;
-						}
-					}
+		if (queuingStructure == PerRankPerDomain)
+        {
+            unsigned rel_time = currentClockCycle % turn_length;
+            
+            // at the start of a turn, decide what transactions to issue
+            if (rel_time == 0)
+            {
+                pair<unsigned, unsigned> *rankRequests = new pair<unsigned, unsigned>[NUM_RANKS];
+                // Find the number of requests to different banks for each rank
+                for (size_t i=0;i<NUM_RANKS;i++)
+                {
+                    set<unsigned> banksToAccess;
+                    vector<BusPacket *> &queue = getCommandQueue(i, getCurrentDomain());
+                    for (size_t j=0;j<queue.size();j++)
+                    {
+                        unsigned bank = queue[j]->bank;
+                        if (banksToAccess.find(bank) == banksToAccess.end())
+                        {
+                            banksToAccess.insert(bank);
+                        }
+                        if (banksToAccess.size() == 3) break;
+                    }
+                    rankRequests[i] = make_pair(banksToAccess.size(), queue.size());
+                }
+                pair<unsigned, unsigned> temp = selectRanks(rankRequests, NUM_RANKS);
+                unsigned chosenRanks[2];
+                chosenRanks[0] = temp.first;
+                chosenRanks[1] = temp.second;
+                // Add bus packet to command buffers to be issued.
+                for (size_t i=0;i<2;i++)
+                {
+                    vector<BusPacket *> &queue = getCommandQueue(chosenRanks[i], getCurrentDomain());
+                    // record packet index used to remove items from queue later
+                    vector<unsigned> items_to_remove;
+                    set<unsigned> banksToAccess;
+                    for (size_t j=0;j<queue.size();j++)
+                    {
+                        unsigned bank = queue[j]->bank;
+                        if (banksToAccess.find(bank) == banksToAccess.end() && queue[j]->busPacketType==ACTIVATE)
+                        {
+                            unsigned activate_time = currentClockCycle + banksToAccess.size()*BTB_DELAY + i*BTR_DELAY;
+                            unsigned rdwr_time = activate_time + tRCD;
+                            banksToAccess.insert(bank);
+                            items_to_remove.push_back(j);
+                            cmdBuffer[i].push_back(queue[j]);
+                            cmdBuffer[i].push_back(queue[j+1]);
+                            issue_time[i].push_back(activate_time);
+                            issue_time[i].push_back(rdwr_time);
+                        }
+                        if (banksToAccess.size() == 3) break;
+                    }
+                    for (size_t j=items_to_remove.size()-1;j>=0;j--)
+                    {
+                        queue.erase(queue.begin()+items_to_remove[j]);
+                        queue.erase(queue.begin()+items_to_remove[j]+1);
+                    }
+                }
+            }
+            for (size_t i=0;i<2;i++)
+            {
+                unsigned foundIssuable = false;
+                for (size_t j=0;j<issue_time[i].size();j++)
+                {
+                    if (issue_time[i][j] < currentClockCycle)
+                        printf("issue time smaller than current clock cycle!\n");
+                    if (issue_time[i][j] == currentClockCycle)
+                    {
+                        *busPacket = cmdBuffer[i][j];
+                        cmdBuffer[i].erase(cmdBuffer[i].begin() + j);
+                        issue_time[i].erase(issue_time[i].begin() + j);
+                        foundIssuable = true;
+                        break;
+                    }
+                }
+                if (foundIssuable) break;
+            }
+        }
+        else
+        {
+            bool sendingREF = false;
+    		//if the memory controller set the flags signaling that we need to issue a refresh
+    		if (refreshWaiting)
+    		{
+    			bool foundActiveOrTooEarly = false;
+    			//look for an open bank
+    			for (size_t b=0;b<NUM_BANKS;b++)
+    			{
+    				vector<BusPacket *> &queue = getCommandQueue(refreshRank,b);
+    				//checks to make sure that all banks are idle
+    				if (bankStates[refreshRank][b].currentBankState == RowActive)
+    				{
+    					foundActiveOrTooEarly = true;
+    					//if the bank is open, make sure there is nothing else
+    					// going there before we close it
+    					for (size_t j=0;j<queue.size();j++)
+    					{
+    						BusPacket *packet = queue[j];
+    						if (packet->row == bankStates[refreshRank][b].openRowAddress &&
+    								packet->bank == b)
+    						{
+    							if (packet->busPacketType != ACTIVATE && isIssuable(packet))
+    							{
+    								*busPacket = packet;
+    								queue.erase(queue.begin() + j);
+    								sendingREF = true;
+    							}
+    							break;
+    						}
+    					}
 
-					break;
-				}
-				//	NOTE: checks nextActivate time for each bank to make sure tRP is being
-				//				satisfied.	the next ACT and next REF can be issued at the same
-				//				point in the future, so just use nextActivate field instead of
-				//				creating a nextRefresh field
-				else if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
-				{
-					foundActiveOrTooEarly = true;
-					break;
-				}
-			}
+    					break;
+    				}
+    				//	NOTE: checks nextActivate time for each bank to make sure tRP is being
+    				//				satisfied.	the next ACT and next REF can be issued at the same
+    				//				point in the future, so just use nextActivate field instead of
+    				//				creating a nextRefresh field
+    				else if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
+    				{
+    					foundActiveOrTooEarly = true;
+    					break;
+    				}
+    			}
 
-			//if there are no open banks and timing has been met, send out the refresh
-			//	reset flags and rank pointer
-			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
-			{
-				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);
-				refreshRank = -1;
-				refreshWaiting = false;
-				sendingREF = true;
-			}
-		} // refreshWaiting
+    			//if there are no open banks and timing has been met, send out the refresh
+    			//	reset flags and rank pointer
+    			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
+    			{
+    				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);
+    				refreshRank = -1;
+    				refreshWaiting = false;
+    				sendingREF = true;
+    			}
+    		} // refreshWaiting
 
-		//if we're not sending a REF, proceed as normal
-		if (!sendingREF)
-		{
-			bool foundIssuable = false;
-			unsigned startingRank = nextRank;
-			unsigned startingBank = nextBank;
-			do
-			{
-				vector<BusPacket *> &queue = getCommandQueue(nextRank, nextBank);
-				//make sure there is something in this queue first
-				//	also make sure a rank isn't waiting for a refresh
-				//	if a rank is waiting for a refesh, don't issue anything to it until the
-				//		refresh logic above has sent one out (ie, letting banks close)
-				if (!queue.empty() && !((nextRank == refreshRank) && refreshWaiting))
-				{
-					if (queuingStructure == PerRank)
-					{
+    		//if we're not sending a REF, proceed as normal
+    		if (!sendingREF)
+    		{
+    			bool foundIssuable = false;
+    			unsigned startingRank = nextRank;
+    			unsigned startingBank = nextBank;
+    			do
+    			{
+    				vector<BusPacket *> &queue = getCommandQueue(nextRank, nextBank);
+    				//make sure there is something in this queue first
+    				//	also make sure a rank isn't waiting for a refresh
+    				//	if a rank is waiting for a refesh, don't issue anything to it until the
+    				//		refresh logic above has sent one out (ie, letting banks close)
+    				if (!queue.empty() && !((nextRank == refreshRank) && refreshWaiting))
+    				{
+    					if (queuingStructure == PerRank)
+    					{
 
-						//search from beginning to find first issuable bus packet
-						for (size_t i=0;i<queue.size();i++)
-						{
-							if (isIssuable(queue[i]))
-							{
-								//check to make sure we aren't removing a read/write that is paired with an activate
-								if (i>0 && queue[i-1]->busPacketType==ACTIVATE &&
-										queue[i-1]->physicalAddress == queue[i]->physicalAddress)
-									continue;
+    						//search from beginning to find first issuable bus packet
+    						for (size_t i=0;i<queue.size();i++)
+    						{
+    							if (isIssuable(queue[i]))
+    							{
+    								//check to make sure we aren't removing a read/write that is paired with an activate
+    								if (i>0 && queue[i-1]->busPacketType==ACTIVATE &&
+    										queue[i-1]->physicalAddress == queue[i]->physicalAddress)
+    									continue;
 
-								*busPacket = queue[i];
-								queue.erase(queue.begin()+i);
-								foundIssuable = true;
-								break;
-							}
-						}
-					}
-					else
-					{
-						if (isIssuable(queue[0]))
-						{
+    								*busPacket = queue[i];
+    								queue.erase(queue.begin()+i);
+    								foundIssuable = true;
+    								break;
+    							}
+    						}
+    					}
+    					else
+    					{
+    						if (isIssuable(queue[0]))
+    						{
 
-							//no need to search because if the front can't be sent,
-							// then no chance something behind it can go instead
-							*busPacket = queue[0];
-							queue.erase(queue.begin());
-							foundIssuable = true;
-						}
-					}
+    							//no need to search because if the front can't be sent,
+    							// then no chance something behind it can go instead
+    							*busPacket = queue[0];
+    							queue.erase(queue.begin());
+    							foundIssuable = true;
+    						}
+    					}
 
-				}
+    				}
 
-				//if we found something, break out of do-while
-				if (foundIssuable) break;
+    				//if we found something, break out of do-while
+    				if (foundIssuable) break;
 
-				//rank round robin
-				if (queuingStructure == PerRank)
-				{
-					nextRank = (nextRank + 1) % NUM_RANKS;
-					if (startingRank == nextRank)
-					{
-						break;
-					}
-				}
-				else 
-				{
-					nextRankAndBank(nextRank, nextBank);
-					if (startingRank == nextRank && startingBank == nextBank)
-					{
-						break;
-					}
-				}
-			}
-			while (true);
+    				//rank round robin
+    				if (queuingStructure == PerRank)
+    				{
+    					nextRank = (nextRank + 1) % NUM_RANKS;
+    					if (startingRank == nextRank)
+    					{
+    						break;
+    					}
+    				}
+    				else 
+    				{
+    					nextRankAndBank(nextRank, nextBank);
+    					if (startingRank == nextRank && startingBank == nextBank)
+    					{
+    						break;
+    					}
+    				}
+    			}
+    			while (true);
 
-			//if we couldn't find anything to send, return false
-			if (!foundIssuable) return false;
-		}
+    			//if we couldn't find anything to send, return false
+    			if (!foundIssuable) return false;
+    		}
+        }  
 	}
 	else if (rowBufferPolicy==OpenPage)
 	{
@@ -788,4 +876,46 @@ void CommandQueue::update()
 	//do nothing since pop() is effectively update(),
 	//needed for SimulatorObject
 	//TODO: make CommandQueue not a SimulatorObject
+}
+
+unsigned CommandQueue::getCurrentDomain()
+{
+    return (currentClockCycle/turn_length)%num_pids;
+}
+
+pair<unsigned, unsigned> CommandQueue::selectRanks(pair <unsigned, unsigned> * rankRequests, unsigned num_ranks)
+{
+    // record the id the the ranks
+    unsigned *id = new unsigned[num_ranks];
+    for (size_t i=0;i<num_ranks;i++) id[i] = i;
+    
+    // bubble sort
+    pair <unsigned, unsigned> temp;
+    unsigned id_temp;
+    for (size_t i=0;i<num_ranks;i++)
+        for (size_t j=0;j<num_ranks-1-i;j++)
+    {
+        if (rankRequests[j].first < rankRequests[j+1].first)
+        {
+            temp = rankRequests[j];
+            rankRequests[j] = rankRequests[j+1];
+            rankRequests[j+1] = temp;
+            // swap the ids
+            id_temp = id[j];
+            id[j] = id[j+1];
+            id[j+1] = id_temp;
+        }
+        else if ((rankRequests[j].first == rankRequests[j+1].first) && (rankRequests[j].second < rankRequests[j+1].second))
+        {
+            temp = rankRequests[j];
+            rankRequests[j] = rankRequests[j+1];
+            rankRequests[j+1] = temp;
+            // swap the ids
+            id_temp = id[j];
+            id[j] = id[j+1];
+            id[j+1] = id_temp;
+        }
+    }
+    
+    return make_pair(id[0], id[1]);
 }

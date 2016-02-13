@@ -54,6 +54,8 @@
 //number of latencies per bucket in the latency histogram
 //TODO: move to system ini file
 #define HISTOGRAM_BIN_SIZE 10
+#define BTB_DELAY 18
+#define BTR_DELAY 9
 
 extern std::ofstream cmd_verify_out; //used by BusPacket.cpp if VERIFICATION_OUTPUT is enabled
 //extern std::ofstream visDataOut;

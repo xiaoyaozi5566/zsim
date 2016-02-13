@@ -46,6 +46,8 @@
 #include "Transaction.h"
 #include "SystemConfiguration.h"
 #include "SimulatorObject.h"
+#include <set>
+#include <utility>
 
 using namespace std;
 
@@ -62,7 +64,7 @@ public:
 	typedef vector<BusPacket2D> BusPacket3D;
 
 	//functions
-	CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log, unsigned num_pids);
+	CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log, unsigned num_pids, unsigned turn_length);
 	virtual ~CommandQueue(); 
 
 	virtual void enqueue(BusPacket *newBusPacket);
@@ -74,6 +76,8 @@ public:
 	virtual void print();
 	void update(); //SimulatorObject requirement
 	virtual vector<BusPacket *> &getCommandQueue(unsigned rank, unsigned bank_or_domain);
+    unsigned getCurrentDomain();
+    pair<unsigned, unsigned> selectRanks(pair <unsigned, unsigned> * rankRequests, unsigned num_ranks);
 
 	//fields
 	
@@ -81,6 +85,7 @@ public:
 	vector< vector<BankState> > &bankStates;
 protected:
     unsigned num_pids;
+    unsigned turn_length;
     
 	void nextRankAndBank(unsigned &rank, unsigned &bank);
 	//fields
@@ -95,6 +100,8 @@ protected:
 
 	vector< vector<unsigned> > tFAWCountdown;
 	vector< vector<unsigned> > rowAccessCounters;
+    vector< vector<BusPacket *> > cmdBuffer;
+    vector< vector<unsigned> > issue_time;
 
 	bool sendAct;
 };

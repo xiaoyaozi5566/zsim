@@ -4,7 +4,7 @@ using namespace DRAMSim;
 
 CommandQueueDS::CommandQueueDS(vector< vector<BankState> > &states, 
         ostream &dramsim_log_, unsigned num_pids_):
-    CommandQueue(states,dramsim_log_,num_pids_)
+    CommandQueue(states,dramsim_log_,num_pids_, 45)
 {}
 
 void CommandQueueDS::enqueue(BusPacket *newBusPacket)
