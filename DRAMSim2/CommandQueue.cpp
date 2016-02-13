@@ -285,6 +285,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     if (issue_time[i][j] == currentClockCycle)
                     {
                         *busPacket = cmdBuffer[i][j];
+                        assert(isIssuable(*busPacket));
                         cmdBuffer[i].erase(cmdBuffer[i].begin() + j);
                         issue_time[i].erase(issue_time[i].begin() + j);
                         foundIssuable = true;
