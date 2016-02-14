@@ -57,7 +57,8 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 		nextRankPRE(0),
 		refreshRank(0),
 		refreshWaiting(false),
-		sendAct(true)
+		finish_refresh(0),
+        sendAct(true)
 {
 	//set here to avoid compile errors
 	currentClockCycle = 0;
@@ -232,6 +233,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 // Find the number of requests to different banks for each rank
                 for (size_t i=0;i<NUM_RANKS;i++)
                 {
+                    // Do not issue requests from the refreshing rank
+                    if (refreshRank == i) continue;
                     set<unsigned> banksToAccess;
                     vector<BusPacket *> &queue = getCommandQueue(i, getCurrentDomain());
                     for (size_t j=0;j<queue.size();j++)
@@ -326,9 +329,9 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         previousBanks[i][j] = tempBanks[j];
                 }
             }
+            unsigned foundIssuable = false;
             for (size_t i=0;i<2;i++)
             {
-                unsigned foundIssuable = false;
                 for (size_t j=0;j<issue_time[i].size();j++)
                 {
                     if (issue_time[i][j] < currentClockCycle)
@@ -345,6 +348,28 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 }
                 if (foundIssuable) break;
             }
+            // Check to see if we can issue a pending refresh command
+            if (!foundIssuable && refreshWaiting)
+            {
+                bool foundActiveOrTooEarly = false;
+                for (size_t b=0;b<NUM_BANKS;b++)
+                {
+                    if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
+                    {
+                        foundActiveOrTooEarly = true;
+                        break;
+                    }
+                }
+    			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
+    			{
+    				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);  				
+    				refreshWaiting = false;
+                    finish_refresh = currentClockCycle + tRFC;
+    			}
+            }
+            // Mark the end of refresh, so the refreshing rank can issue requests again
+            if (currentClockCycle == finish_refresh)
+                refreshRank = -1;
         }
         else
         {

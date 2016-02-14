@@ -104,6 +104,7 @@ protected:
     vector< vector<unsigned> > issue_time;
     vector<unsigned> previousRanks;
     unsigned previousBanks[2][3];
+    unsigned finish_refresh;
 
 	bool sendAct;
 };
