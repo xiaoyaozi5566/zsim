@@ -107,6 +107,10 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
         vector<unsigned> perRankTime;
         issue_time.push_back(perRankTime);
     }
+    
+    for (size_t i=0;i<2;i++)
+        for (size_t j=0;j<3;j++)
+            previousBanks[i][j] = 1000;
         
 	//FOUR-bank activation window
 	//	this will count the number of activations within a given window
@@ -245,6 +249,20 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 unsigned chosenRanks[2];
                 chosenRanks[0] = temp.first;
                 chosenRanks[1] = temp.second;
+                if (previousRanks.size() > 1)
+                {
+                    if (previousRanks[1] == chosenRanks[0])
+                    // we need to swap the ranks to meet the timing constraints
+                    {
+                        unsigned temp = chosenRanks[0];
+                        chosenRanks[0] = chosenRanks[1];
+                        chosenRanks[1] = temp;
+                    }
+                }
+                // update previous ranks
+                previousRanks.erase(previousRanks.begin(), previousRanks.end());
+                for (size_t i=0;i<2;i++) previousRanks.push_back(chosenRanks[i]);
+                
                 // Add bus packet to command buffers to be issued.
                 for (size_t i=0;i<2;i++)
                 {
@@ -252,12 +270,42 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     // record packet index used to remove items from queue later
                     vector<unsigned> items_to_remove;
                     set<unsigned> banksToAccess;
+                    unsigned tempBanks[3];
+                    for (size_t j=0;j<3;j++)
+                        tempBanks[j] = 1000;
+                    // array to track each slot is taken or not
+                    // Yao: the algorithm here can be improved
+                    bool slot_status[3];
+                    for (size_t j=0;j<3;j++)
+                        slot_status[j] = false;
                     for (size_t j=0;j<queue.size();j++)
                     {
                         unsigned bank = queue[j]->bank;
                         if (banksToAccess.find(bank) == banksToAccess.end() && queue[j]->busPacketType==ACTIVATE)
                         {
-                            unsigned activate_time = currentClockCycle + banksToAccess.size()*BTB_DELAY + i*BTR_DELAY;
+                            // decide which slot to issue this request
+                            unsigned order;
+                            if (bank == previousBanks[i][2]) 
+                            {
+                                order = 2;
+                            }   
+                            else if (bank == previousBanks[i][1]) 
+                            {
+                                order = 1;
+                            }
+                            else order = 0;
+
+                            for (size_t k=order;k<3;k++)
+                            {
+                                if (!slot_status[k])
+                                {
+                                    order = k;
+                                    slot_status[k] = true;
+                                }
+                            }
+                            tempBanks[order] = bank;
+                            
+                            unsigned activate_time = currentClockCycle + order*BTB_DELAY + i*BTR_DELAY;
                             unsigned rdwr_time = activate_time + tRCD;
                             banksToAccess.insert(bank);
                             items_to_remove.push_back(j);
@@ -273,6 +321,9 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         queue.erase(queue.begin()+items_to_remove[j]);
                         queue.erase(queue.begin()+items_to_remove[j]+1);
                     }
+                    // Update previous banks
+                    for (size_t j=0;j<3;j++)
+                        previousBanks[i][j] = tempBanks[j];
                 }
             }
             for (size_t i=0;i<2;i++)

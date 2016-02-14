@@ -102,6 +102,8 @@ protected:
 	vector< vector<unsigned> > rowAccessCounters;
     vector< vector<BusPacket *> > cmdBuffer;
     vector< vector<unsigned> > issue_time;
+    vector<unsigned> previousRanks;
+    unsigned previousBanks[2][3];
 
 	bool sendAct;
 };
