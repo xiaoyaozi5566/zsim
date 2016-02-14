@@ -122,6 +122,7 @@ private:
 
 
 	unsigned refreshRank;
+    unsigned num_pids;
 	
 public:
 	// energy values are per rank -- SST uses these directly, so make these public 

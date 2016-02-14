@@ -60,7 +60,7 @@ extern float Vdd;
 
 using namespace DRAMSim;
 
-MemoryController::MemoryController(MemorySystem *parent, unsigned num_pids, CSVWriter &csvOut_, ostream &dramsim_log_) :
+MemoryController::MemoryController(MemorySystem *parent, unsigned num_pids_, CSVWriter &csvOut_, ostream &dramsim_log_) :
 		dramsim_log(dramsim_log_),
 		bankStates(NUM_RANKS, vector<BankState>(NUM_BANKS, dramsim_log)),
 		// Yao: need to initialize command queue with input parameters
@@ -68,7 +68,8 @@ MemoryController::MemoryController(MemorySystem *parent, unsigned num_pids, CSVW
 		poppedBusPacket(NULL),
 		csvOut(csvOut_),
 		totalTransactions(0),
-		refreshRank(0)
+		refreshRank(0),
+        num_pids(num_pids_)
 {
 	//get handle on parent
 	parentMemorySystem = parent;
@@ -692,40 +693,45 @@ void MemoryController::update()
 		}
 		totalTransactions++;
 
-		bool foundMatch=false;
-		//find the pending read transaction to calculate latency
-        for (size_t k=0;k<pendingReadTransactions.size();k++)
+		unsigned srcId = returnTransaction[0]->srcId;
+        unsigned cur_delay = (currentClockCycle - srcId*TURN_LENGTH)%(2*num_pids);
+        if (cur_delay > RETURN_DELAY)
         {
-    		for (size_t i=0;i<pendingReadTransactions[k].size();i++)
-    		{
-    			if (pendingReadTransactions[k][i]->address == returnTransaction[0]->address)
-    			{
-    				//if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
-    				//	{
-    				//		pendingReadTransactions[i]->print();
-    				//		exit(0);
-    				//	}
-    				unsigned chan,rank,bank,row,col;
-    				addressMapping(returnTransaction[0]->address,chan,rank,bank,row,col);
-    				insertHistogram(currentClockCycle-pendingReadTransactions[k][i]->timeAdded,rank,bank);
-    				//return latency
-    				returnReadData(pendingReadTransactions[k][i]);
+            bool foundMatch=false;
+    		//find the pending read transaction to calculate latency
+            for (size_t k=0;k<pendingReadTransactions.size();k++)
+            {
+        		for (size_t i=0;i<pendingReadTransactions[k].size();i++)
+        		{
+        			if (pendingReadTransactions[k][i]->address == returnTransaction[0]->address)
+        			{
+        				//if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
+        				//	{
+        				//		pendingReadTransactions[i]->print();
+        				//		exit(0);
+        				//	}
+        				unsigned chan,rank,bank,row,col;
+        				addressMapping(returnTransaction[0]->address,chan,rank,bank,row,col);
+        				insertHistogram(currentClockCycle-pendingReadTransactions[k][i]->timeAdded,rank,bank);
+        				//return latency
+        				returnReadData(pendingReadTransactions[k][i]);
 
-    				delete pendingReadTransactions[k][i];
-    				pendingReadTransactions[k].erase(pendingReadTransactions[k].begin()+i);
-    				foundMatch=true; 
-    				break;
-    			}
-    		}
-        }
+        				delete pendingReadTransactions[k][i];
+        				pendingReadTransactions[k].erase(pendingReadTransactions[k].begin()+i);
+        				foundMatch=true; 
+        				break;
+        			}
+        		}
+            }
 		
-		if (!foundMatch)
-		{
-			ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[0]->address<<dec);
-			abort(); 
-		}
-		delete returnTransaction[0];
-		returnTransaction.erase(returnTransaction.begin());
+    		if (!foundMatch)
+    		{
+    			ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[0]->address<<dec);
+    			abort(); 
+    		}
+    		delete returnTransaction[0];
+    		returnTransaction.erase(returnTransaction.begin());
+        }
 	}
 
 	//decrement refresh counters
