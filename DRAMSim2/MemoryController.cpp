@@ -63,8 +63,7 @@ using namespace DRAMSim;
 MemoryController::MemoryController(MemorySystem *parent, unsigned num_pids_, CSVWriter &csvOut_, ostream &dramsim_log_) :
 		dramsim_log(dramsim_log_),
 		bankStates(NUM_RANKS, vector<BankState>(NUM_BANKS, dramsim_log)),
-		// Yao: need to initialize command queue with input parameters
-        commandQueue(bankStates, dramsim_log_, 2, 45),
+        commandQueue(bankStates, dramsim_log_, num_pids_, TURN_LENGTH),
 		poppedBusPacket(NULL),
 		csvOut(csvOut_),
 		totalTransactions(0),
@@ -144,8 +143,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 	}
 
 	//add to return read data queue
-	//Yao: needs to get the corrent srcId
-	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data, 0));
+	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data, bpacket->srcId));
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 
 	// this delete statement saves a mindboggling amount of memory
