@@ -144,6 +144,11 @@ CommandQueue::~CommandQueue()
 			queues[r][b].clear();
 		}
 	}
+    for (size_t i=0;i<2;i++)
+    {
+        cmdBuffer[i].clear();
+        issue_time[i].clear();
+    }
 }
 //Adds a command to appropriate queue
 void CommandQueue::enqueue(BusPacket *newBusPacket)
@@ -263,7 +268,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     }
                 }
                 // update previous ranks
-                previousRanks.erase(previousRanks.begin(), previousRanks.end());
+                previousRanks.clear();
                 for (size_t i=0;i<2;i++) previousRanks.push_back(chosenRanks[i]);
                 
                 // Add bus packet to command buffers to be issued.
@@ -319,7 +324,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         }
                         if (banksToAccess.size() == 3) break;
                     }
-                    for (size_t j=items_to_remove.size()-1;j>=0;j--)
+                    for (int j=items_to_remove.size()-1;j>=0;j--)
                     {
                         queue.erase(queue.begin()+items_to_remove[j]);
                         queue.erase(queue.begin()+items_to_remove[j]+1);
@@ -768,6 +773,25 @@ void CommandQueue::print()
 			for (size_t j=0;j<NUM_BANKS;j++)
 			{
 				PRINT("    Bank "<< j << "   size : " << queues[i][j].size() );
+
+				for (size_t k=0;k<queues[i][j].size();k++)
+				{
+					PRINTN("       " << k << "]");
+					queues[i][j][k]->print();
+				}
+			}
+		}
+	}
+	else if (queuingStructure==PerRankPerDomain)
+	{
+		PRINT("\n== Printing Per Rank, Per Domain Queue" );
+
+		for (size_t i=0;i<NUM_RANKS;i++)
+		{
+			PRINT(" = Rank " << i );
+			for (size_t j=0;j<num_pids;j++)
+			{
+				PRINT("    Domain "<< j << "   size : " << queues[i][j].size() );
 
 				for (size_t k=0;k<queues[i][j].size();k++)
 				{

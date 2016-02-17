@@ -691,36 +691,34 @@ void MemoryController::update()
 		}
 		totalTransactions++;
 
-		unsigned srcId = returnTransaction[0]->srcId;
-        unsigned cur_delay = (currentClockCycle - srcId*TURN_LENGTH)%(2*num_pids);
+		// Yao: may have bug (or not)
+        unsigned srcId = returnTransaction[0]->srcId;
+        unsigned cur_delay = (currentClockCycle - srcId*TURN_LENGTH)%(num_pids*TURN_LENGTH);
         if (cur_delay > RETURN_DELAY)
         {
             bool foundMatch=false;
     		//find the pending read transaction to calculate latency
-            for (size_t k=0;k<pendingReadTransactions.size();k++)
-            {
-        		for (size_t i=0;i<pendingReadTransactions[k].size();i++)
-        		{
-        			if (pendingReadTransactions[k][i]->address == returnTransaction[0]->address)
-        			{
-        				//if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
-        				//	{
-        				//		pendingReadTransactions[i]->print();
-        				//		exit(0);
-        				//	}
-        				unsigned chan,rank,bank,row,col;
-        				addressMapping(returnTransaction[0]->address,chan,rank,bank,row,col);
-        				insertHistogram(currentClockCycle-pendingReadTransactions[k][i]->timeAdded,rank,bank);
-        				//return latency
-        				returnReadData(pendingReadTransactions[k][i]);
+    		for (size_t i=0;i<pendingReadTransactions[srcId].size();i++)
+    		{
+    			if (pendingReadTransactions[srcId][i]->address == returnTransaction[0]->address)
+    			{
+    				//if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
+    				//	{
+    				//		pendingReadTransactions[i]->print();
+    				//		exit(0);
+    				//	}
+    				unsigned chan,rank,bank,row,col;
+    				addressMapping(returnTransaction[0]->address,chan,rank,bank,row,col);
+    				insertHistogram(currentClockCycle-pendingReadTransactions[srcId][i]->timeAdded,rank,bank);
+    				//return latency
+    				returnReadData(pendingReadTransactions[srcId][i]);
 
-        				delete pendingReadTransactions[k][i];
-        				pendingReadTransactions[k].erase(pendingReadTransactions[k].begin()+i);
-        				foundMatch=true; 
-        				break;
-        			}
-        		}
-            }
+    				delete pendingReadTransactions[srcId][i];
+    				pendingReadTransactions[srcId].erase(pendingReadTransactions[srcId].begin()+i);
+    				foundMatch=true; 
+    				break;
+    			}
+    		}
 		
     		if (!foundMatch)
     		{

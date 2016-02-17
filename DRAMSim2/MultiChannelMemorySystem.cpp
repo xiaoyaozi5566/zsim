@@ -461,13 +461,15 @@ bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr, uint3
 bool MultiChannelMemorySystem::willAcceptTransaction(uint64_t addr)
 {
 	unsigned chan, rank,bank,row,col; 
-	addressMapping(addr, chan, rank, bank, row, col); 
+	addressMapping(addr, chan, rank, bank, row, col);
+    // Yao: 0 should be the security domain ID here 
 	return channels[chan]->WillAcceptTransaction(0); 
 }
 
 bool MultiChannelMemorySystem::willAcceptTransaction()
 {
 	for (size_t c=0; c<NUM_CHANS; c++) {
+        // Yao: 0 should be the security domain ID here 
 		if (!channels[c]->WillAcceptTransaction(0))
 		{
 			return false; 

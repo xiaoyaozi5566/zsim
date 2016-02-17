@@ -220,7 +220,7 @@ void MemorySystem::update()
 	}
 
 	//pendingTransactions will only have stuff in it if MARSS is adding stuff
-	if (pendingTransactions.size() > 0 && memoryController->WillAcceptTransaction(0))
+	if (pendingTransactions.size() > 0 && memoryController->WillAcceptTransaction(pendingTransactions.front()->srcId))
 	{
 		memoryController->addTransaction(pendingTransactions.front());
 		pendingTransactions.pop_front();
