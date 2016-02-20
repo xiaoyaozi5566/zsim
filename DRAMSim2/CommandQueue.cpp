@@ -57,7 +57,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 		nextRankPRE(0),
 		refreshRank(0),
 		refreshWaiting(false),
-		finish_refresh(0),
+		finish_refresh(100000),
         sendAct(true)
 {
 	//set here to avoid compile errors
@@ -369,12 +369,14 @@ bool CommandQueue::pop(BusPacket **busPacket)
     			{
     				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);  				
     				refreshWaiting = false;
+                    foundIssuable = true;
                     finish_refresh = currentClockCycle + tRFC;
     			}
             }
             // Mark the end of refresh, so the refreshing rank can issue requests again
             if (currentClockCycle == finish_refresh)
                 refreshRank = -1;
+            if (!foundIssuable) return false;
         }
         else
         {
@@ -730,13 +732,12 @@ bool CommandQueue::pop(BusPacket **busPacket)
 		sendAct = true;
 		nextRankAndBank(nextRank, nextBank);
 	}
-
 	//if its an activate, add a tfaw counter
 	if ((*busPacket)->busPacketType==ACTIVATE)
 	{
 		tFAWCountdown[(*busPacket)->rank].push_back(tFAW);
 	}
-
+    
 	return true;
 }
 
