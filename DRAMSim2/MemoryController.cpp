@@ -299,7 +299,8 @@ void MemoryController::update()
 	//function returns true if there is something valid in poppedBusPacket
 	if (commandQueue.pop(&poppedBusPacket))
 	{
-		if (poppedBusPacket->busPacketType == WRITE || poppedBusPacket->busPacketType == WRITE_P)
+        // printf("pop packet %lx from domain %d @ cycle %ld, rank %d, bank %d\n", poppedBusPacket->physicalAddress, poppedBusPacket->srcId, currentClockCycle, poppedBusPacket->rank, poppedBusPacket->bank);
+        if (poppedBusPacket->busPacketType == WRITE || poppedBusPacket->busPacketType == WRITE_P)
 		{
 
 			writeDataToSend.push_back(new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,

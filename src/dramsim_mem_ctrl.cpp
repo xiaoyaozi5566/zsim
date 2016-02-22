@@ -121,7 +121,7 @@ uint64_t DRAMSimMemory::access(MemReq& req) {
         Address addr = req.lineAddr << lineBits;
         bool isWrite = (req.type == PUTX);
         DRAMSimAccEvent* memEv = new (zinfo->eventRecorders[req.srcId]) DRAMSimAccEvent(this, isWrite, addr, domain, req.srcId);
-        // info("packet domain %d", req.srcId);
+        // info("packet %lx from domain %d @ cycle %ld", addr, req.srcId, req.cycle);
         memEv->setMinStartCycle(req.cycle);
         TimingRecord tr = {addr, req.cycle, respCycle, req.type, memEv, memEv};
         zinfo->eventRecorders[req.srcId]->pushRecord(tr);

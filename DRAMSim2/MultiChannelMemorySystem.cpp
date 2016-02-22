@@ -375,7 +375,8 @@ void MultiChannelMemorySystem::update()
 }
 void MultiChannelMemorySystem::actual_update() 
 {
-	if (currentClockCycle == 0)
+    // printf("currentClockCycle %ld\n", currentClockCycle);
+    if (currentClockCycle == 0)
 	{
 		InitOutputFiles(traceFilename);
 		DEBUG("DRAMSim2 Clock Frequency ="<<clockDomainCrosser.clock1<<"Hz, CPU Clock Frequency="<<clockDomainCrosser.clock2<<"Hz"); 
@@ -446,6 +447,7 @@ bool MultiChannelMemorySystem::addTransaction(Transaction *trans)
 bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr, uint32_t srcId)
 {
 	unsigned channelNumber = findChannelNumber(addr); 
+    // printf("Add transaction %lx from domain %d @ cycle %ld\n", addr, srcId, currentClockCycle);
 	return channels[channelNumber]->addTransaction(isWrite, addr, srcId); 
 }
 

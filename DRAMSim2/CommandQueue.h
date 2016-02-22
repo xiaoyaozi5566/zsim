@@ -73,6 +73,7 @@ public:
 	bool isIssuable(BusPacket *busPacket);
 	bool isEmpty(unsigned rank);
 	void needRefresh(unsigned rank);
+    unsigned getRefreshRank();
 	virtual void print();
 	void update(); //SimulatorObject requirement
 	virtual vector<BusPacket *> &getCommandQueue(unsigned rank, unsigned bank_or_domain);
