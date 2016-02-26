@@ -14,7 +14,8 @@ techIni = "/home/yw438/zsim/DRAMSim2/ini/DDR3_micron_64M_8B_x4_sg15.ini"
 systemIni_sec = "/home/yw438/zsim/DRAMSim2/system.ini.example"
 systemIni_insec = "/home/yw438/zsim/DRAMSim2/system.ini.baseline"
 
-specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'astar', 'xalan']
+# remove astar due to bugs
+specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
 
 specfp = ['bwaves', 'gamess', 'milc', 'zeusmp', 'gromacs', 'cactusADM', 'leslie3d', 'namd', 'dealII', 'soplex', 'povray', 'calculix', 'GemsFDTD', 'tonto', 'lbm', 'wrf']
 
@@ -29,7 +30,7 @@ specinvoke = {
     'libquantum' : spec_dir + "/libquantum 1397 8",
     'h264ref'    : spec_dir + "/h264ref -d " + spec_dir + "/foreman_ref_encoder_baseline.cfg",
     'omnetpp'    : spec_dir + "/omnetpp " + spec_dir + "/omnetpp.ini",
-    'astar'      : spec_dir + "/astar " + spec_dir + "/BigLakes2048.cfg",
+    # 'astar'      : spec_dir + "/astar " + spec_dir + "/BigLakes2048.cfg",
     'xalan'      : spec_dir + "/Xalan -v " + spec_dir + "/t5.xml" + spec_dir + "/xalanc.xsl",
     'bwaves'     : spec_dir + "/bwaves", 
     'gamess'     : spec_dir + "/gamess",
@@ -82,6 +83,11 @@ multiprog = [['astar', 'bzip2'],
 test = [['bzip2', 'gcc'],]
 
 singleprog = specint + specfp
+
+multiprog = []
+
+for i in range(len(singleprog)-1):
+    multiprog.append([singleprog[i], singleprog[i+1]])
 
 workloads = multiprog
 
@@ -160,14 +166,20 @@ def multiprogs():
         config += "    };\n"
         config += "};\n\n"
         config += "process0 = {\n"
+        config += "    mask = \"0\";\n"
         config += "    command = \"" + specinvoke[p0] + "\";\n"
+        if (p0 in redirect_input.keys()):
+            config += "    input = \"" + redirect_input[p0] + "\";\n"
         config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"20000000000 256000000\";\n"
+        config += "    ffiPoints = \"2000000 1000000\";\n"
         config += "};\n\n"
         config += "process1 = {\n"
+        config += "    mask = \"1\";\n"
         config += "    command = \"" + specinvoke[p1] + "\";\n"
+        if (p1 in redirect_input.keys()):
+            config += "    input = \"" + redirect_input[p1] + "\";\n"
         config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"20000000000 256000000\";\n"
+        config += "    ffiPoints = \"2000000 1000000\";\n"
         config += "};\n\n"
         
         config_file.write("%s\n" % config)
@@ -240,11 +252,15 @@ def multiprogs_DRAMSim2():
         config += "                ways = 16;\n"
         config += "                hash = \"None\";\n"
         config += "            };\n"
+        config += "            repl = {\n"
+        config += "                type = \"WayPart\";\n"
+        config += "            };\n"
         config += "            parent = \"mem\";\n"
         config += "        };\n\n"
         config += "    };\n"
         config += "    mem = {\n"
         config += "        controllers = 1;\n"
+        config += "        latency = 10;\n"
         config += "        type = \"DRAMSim\";\n"
         config += "        techIni = \"" + techIni + "\";\n"
         config += "        systemIni = \"" + systemIni_insec + "\";\n"
@@ -253,12 +269,18 @@ def multiprogs_DRAMSim2():
         config += "    };\n"
         config += "};\n\n"
         config += "process0 = {\n"
+        config += "    mask = \"0\";\n"
         config += "    command = \"" + specinvoke[p0] + "\";\n"
+        if (p0 in redirect_input.keys()):
+            config += "    input = \"" + redirect_input[p0] + "\";\n"
         config += "    startFastForwarded = True;\n"
         config += "    ffiPoints = \"2000000 1000000\";\n"
         config += "};\n\n"
         config += "process1 = {\n"
+        config += "    mask = \"1\";\n"
         config += "    command = \"" + specinvoke[p1] + "\";\n"
+        if (p1 in redirect_input.keys()):
+            config += "    input = \"" + redirect_input[p1] + "\";\n"
         config += "    startFastForwarded = True;\n"
         config += "    ffiPoints = \"2000000 1000000\";\n"
         config += "};\n\n"
@@ -326,10 +348,10 @@ def singleprogs():
         config += "            parent = \"l2\";\n"
         config += "        };\n\n"        
         config += "        l2 = {\n"
-        config += "            size = 1048576;\n"
+        config += "            size = 524288;\n"
         config += "            caches = 1;\n"
         config += "            array = {\n"
-        config += "                ways = 16;\n"
+        config += "                ways = 8;\n"
         config += "                hash = \"None\";\n"
         config += "            };\n"
         config += "            parent = \"mem\";\n"
@@ -337,6 +359,7 @@ def singleprogs():
         config += "    };\n"
         config += "    mem = {\n"
         config += "        controllers = 1;\n"
+        config += "        latency = 10;\n"
         config += "        type = \"DRAMSim\";\n"
         config += "        techIni = \"" + techIni + "\";\n"
         config += "        systemIni = \"" + systemIni_insec + "\";\n"
@@ -381,5 +404,5 @@ def singleprogs():
         
 # call the function        
 # multiprogs()
-# multiprogs_DRAMSim2()
-singleprogs()
+multiprogs_DRAMSim2()
+# singleprogs()
