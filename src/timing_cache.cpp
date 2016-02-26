@@ -302,7 +302,8 @@ uint64_t TimingCache::access(MemReq& req) {
 uint64_t TimingCache::highPrioAccess(uint64_t cycle) {
     assert(cycle >= lastFreeCycle);
     uint64_t lookupCycle = MAX(cycle, lastAccCycle+1);
-    if (lastAccCycle < cycle-1) lastFreeCycle = cycle-1; //record last free run
+    if (cycle == 0) lastFreeCycle = 0;
+    else if (lastAccCycle < cycle-1) lastFreeCycle = cycle-1; //record last free run
     lastAccCycle = lookupCycle;
     return lookupCycle;
 }
