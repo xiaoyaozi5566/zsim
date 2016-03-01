@@ -698,10 +698,15 @@ void MemoryController::update()
         if (cur_delay > RETURN_DELAY)
         {
             bool foundMatch=false;
+            unsigned queue_index;
+            if (queuingStructure == PerRankPerDomain)
+                queue_index = srcId;
+            else
+                queue_index = 0;
     		//find the pending read transaction to calculate latency
-    		for (size_t i=0;i<pendingReadTransactions[srcId].size();i++)
+    		for (size_t i=0;i<pendingReadTransactions[queue_index].size();i++)
     		{
-    			if (pendingReadTransactions[srcId][i]->address == returnTransaction[0]->address)
+    			if (pendingReadTransactions[queue_index][i]->address == returnTransaction[0]->address)
     			{
     				//if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
     				//	{
@@ -710,12 +715,12 @@ void MemoryController::update()
     				//	}
     				unsigned chan,rank,bank,row,col;
     				addressMapping(returnTransaction[0]->address,chan,rank,bank,row,col);
-    				insertHistogram(currentClockCycle-pendingReadTransactions[srcId][i]->timeAdded,rank,bank);
+    				insertHistogram(currentClockCycle-pendingReadTransactions[queue_index][i]->timeAdded,rank,bank);
     				//return latency
-    				returnReadData(pendingReadTransactions[srcId][i]);
+    				returnReadData(pendingReadTransactions[queue_index][i]);
 
-    				delete pendingReadTransactions[srcId][i];
-    				pendingReadTransactions[srcId].erase(pendingReadTransactions[srcId].begin()+i);
+    				delete pendingReadTransactions[queue_index][i];
+    				pendingReadTransactions[queue_index].erase(pendingReadTransactions[queue_index].begin()+i);
     				foundMatch=true; 
     				break;
     			}
@@ -810,7 +815,10 @@ bool MemoryController::addTransaction(Transaction *trans)
 	if (WillAcceptTransaction(trans->srcId))
 	{
 		trans->timeAdded = currentClockCycle;
-		transactionQueues[trans->srcId].push_back(trans);
+        if (queuingStructure==PerRankPerDomain)
+		    transactionQueues[trans->srcId].push_back(trans);
+        else
+            transactionQueues[0].push_back(trans);
 		return true;
 	}
 	else 
