@@ -267,7 +267,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 chosenRanks[1] = temp.second;
                 if (previousRanks.size() > 1)
                 {
-                    if (previousRanks[1] == chosenRanks[0])
+                    if (previousRanks[1] == chosenRanks[0] || previousRanks[0] == chosenRanks[1])
                     // we need to swap the ranks to meet the timing constraints
                     {
                         unsigned temp = chosenRanks[0];
