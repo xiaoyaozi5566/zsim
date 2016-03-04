@@ -7,7 +7,7 @@ CMD_QUEUE_DEPTH=32						; command queue, i.e., DRAM-level commands such as: CAS 
 EPOCH_LENGTH=100000						; length of an epoch in cycles (granularity of simulation)
 ROW_BUFFER_POLICY=close_page 		; close_page or open_page
 ADDRESS_MAPPING_SCHEME=scheme2	;valid schemes 1-7; For multiple independent channels, use scheme7 since it has the most parallelism 
-SCHEDULING_POLICY=rank_then_bank_round_robin  ; bank_then_rank_round_robin or rank_then_bank_round_robin 
+SCHEDULING_POLICY=sec_mem  ; bank_then_rank_round_robin or rank_then_bank_round_robin 
 QUEUING_STRUCTURE=per_rank_per_domain			;per_rank or per_rank_per_bank
 
 ;for true/false, please use all lowercase

@@ -228,7 +228,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 
 	if (rowBufferPolicy==ClosePage)
 	{
-		if (queuingStructure == PerRankPerDomain)
+		if (schedulingPolicy == SecMem)
         {
             unsigned rel_time = currentClockCycle % turn_length;
             
@@ -358,7 +358,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 //         printf("cmdBuffer[%ld][%ld] = %lx, rank %ld, issue time %d\n", j, k, cmdBuffer[j][k]->physicalAddress, cmdBuffer[j][k]->rank, issue_time[j][k]);
                 // printf("cmdBuffer size %d %d\n", cmdBuffer[0].size(), cmdBuffer[1].size());
             }
-            unsigned foundIssuable = false;
+            bool foundIssuable = false;
             for (size_t i=0;i<2;i++)
             {
                 for (size_t j=0;j<issue_time[i].size();j++)
@@ -374,6 +374,81 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         foundIssuable = true;
                         break;
                     }
+                }
+                if (foundIssuable) break;
+            }
+            // Check to see if we can issue a pending refresh command
+            if (!foundIssuable && refreshWaiting)
+            {
+                bool foundActiveOrTooEarly = false;
+                for (size_t b=0;b<NUM_BANKS;b++)
+                {
+                    if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
+                    {
+                        foundActiveOrTooEarly = true;
+                        break;
+                    }
+                }
+    			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
+    			{
+    				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);  				
+    				refreshWaiting = false;
+                    foundIssuable = true;
+                    finish_refresh = currentClockCycle + tRFC;
+                    // printf("issuing refresh to rank %d\n", refreshRank);
+    			}
+            }
+            // Mark the end of refresh, so the refreshing rank can issue requests again
+            if (currentClockCycle == finish_refresh)
+                refreshRank = -1;
+            if (!foundIssuable) return false;
+        }
+        else if (schedulingPolicy == FixedService)
+        {
+            unsigned rel_time = currentClockCycle % BTB_DELAY;
+            // Group banks for triple alternation
+            unsigned bank_group = (currentClockCycle/BTB_DELAY) % 3;
+            unsigned current_domain = (currentClockCycle/BTB_DELAY) % 2;
+            if (rel_time == 0)
+            {
+                bool foundIssuable = false;
+                for (size_t i=0;i<NUM_RANKS;i++)
+                {
+                    if (getRefreshRank() == i || refreshRank == i) continue;
+                    vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
+                    for (size_t j=0; j<queue.size();j++)
+                    {
+                        unsigned bank = queue[j]->bank;
+                        if (bank % 3 == bank_group && queue[j]->busPacketType==ACTIVATE)
+                        {
+                            unsigned activate_time = currentClockCycle;
+                            unsigned rdwr_time = activate_time + tRCD;
+                            cmdBuffer[0].push_back(queue[j]);
+                            cmdBuffer[0].push_back(queue[j+1]);
+                            queue.erase(queue.begin() + j + 1);
+                            queue.erase(queue.begin() + j);
+                            issue_time[0].push_back(activate_time);
+                            issue_time[0].push_back(rdwr_time);
+                            foundIssuable = true;
+                        }
+                        if (foundIssuable) break;
+                    }
+                    if (foundIssuable) break;
+                }
+            }
+            bool foundIssuable = false;
+            for (size_t i=0;i<issue_time[0].size();i++)
+            {
+                if (issue_time[0][i] < currentClockCycle)
+                    printf("issue time smaller than current clock cycle!\n");
+                if (issue_time[0][i] == currentClockCycle)
+                {
+                    *busPacket = cmdBuffer[0][i];
+                    assert(isIssuable(*busPacket));
+                    cmdBuffer[0].erase(cmdBuffer[0].begin() + i);
+                    issue_time[0].erase(issue_time[0].begin() + i);
+                    foundIssuable = true;
+                    break;
                 }
                 if (foundIssuable) break;
             }
@@ -990,6 +1065,19 @@ void CommandQueue::nextRankAndBank(unsigned &rank, unsigned &bank)
 			}
 		}
 	}
+    else if (schedulingPolicy == SecMem || schedulingPolicy == FixedService)
+    {
+		bank++;
+		if (bank == NUM_BANKS)
+		{
+			bank = 0;
+			rank++;
+			if (rank == NUM_RANKS)
+			{
+				rank = 0;
+			}
+		}
+    }
 	else
 	{
 		ERROR("== Error - Unknown scheduling policy");

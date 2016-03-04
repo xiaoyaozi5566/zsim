@@ -693,9 +693,11 @@ void MemoryController::update()
 		totalTransactions++;
 
 		// Yao: may have bug (or not)
+        bool ready = true;
         unsigned srcId = returnTransaction[0]->srcId;
         unsigned cur_delay = (currentClockCycle - srcId*TURN_LENGTH)%(num_pids*TURN_LENGTH);
-        if (cur_delay > RETURN_DELAY)
+        if (schedulingPolicy == SecMem && cur_delay <= RETURN_DELAY) ready = false;
+        if (ready)
         {
             bool foundMatch=false;
             unsigned queue_index;

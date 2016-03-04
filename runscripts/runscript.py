@@ -13,6 +13,7 @@ stderr_dir = zsim_home + "/stderr"
 techIni = "/home/yw438/zsim/DRAMSim2/ini/DDR3_micron_64M_8B_x4_sg15.ini"
 systemIni_sec = "/home/yw438/zsim/DRAMSim2/system.ini.example"
 systemIni_insec = "/home/yw438/zsim/DRAMSim2/system.ini.baseline"
+systemIni_fs = "/home/yw438/zsim/DRAMSim2/system.ini.fs"
 
 # remove astar due to bugs
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
@@ -263,7 +264,7 @@ def multiprogs_DRAMSim2():
         config += "        latency = 10;\n"
         config += "        type = \"DRAMSim\";\n"
         config += "        techIni = \"" + techIni + "\";\n"
-        config += "        systemIni = \"" + systemIni_insec + "\";\n"
+        config += "        systemIni = \"" + systemIni + "\";\n"
         config += "        outputDir = \"" + results_dir + "/" + folder + "\";\n"
         config += "        traceName = \"" + p0 + "_" + p1 + "\";\n"
         config += "    };\n"
@@ -362,7 +363,7 @@ def singleprogs():
         config += "        latency = 10;\n"
         config += "        type = \"DRAMSim\";\n"
         config += "        techIni = \"" + techIni + "\";\n"
-        config += "        systemIni = \"" + systemIni_insec + "\";\n"
+        config += "        systemIni = \"" + systemIni + "\";\n"
         config += "        outputDir = \"" + results_dir + "/" + folder + "\";\n"
         config += "        traceName = \"" + workload + "\";\n"
         config += "    };\n"
@@ -404,5 +405,6 @@ def singleprogs():
         
 # call the function        
 # multiprogs()
+systemIni = systemIni_insec
 multiprogs_DRAMSim2()
 # singleprogs()
