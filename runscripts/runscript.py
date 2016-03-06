@@ -2,6 +2,7 @@
 
 import os
 import sys
+import time
 
 zsim_home = "/home/yw438/zsim"
 spec_dir = "/home/yw438/benchmarks"
@@ -11,7 +12,7 @@ stdout_dir = zsim_home + "/stdout"
 stderr_dir = zsim_home + "/stderr"
 
 techIni = "/home/yw438/zsim/DRAMSim2/ini/DDR3_micron_64M_8B_x4_sg15.ini"
-systemIni_sec = "/home/yw438/zsim/DRAMSim2/system.ini.example"
+systemIni_sec = "/home/yw438/zsim/DRAMSim2/system.ini.sec"
 systemIni_insec = "/home/yw438/zsim/DRAMSim2/system.ini.baseline"
 systemIni_fs = "/home/yw438/zsim/DRAMSim2/system.ini.fs"
 
@@ -312,6 +313,7 @@ def multiprogs_DRAMSim2():
         submit_file.close()
         
         os.system("condor_submit " + scriptgen_dir + "/" + filename)
+        time.sleep(5)
 
 def singleprogs():
     for workload in singleprog:
@@ -405,6 +407,6 @@ def singleprogs():
         
 # call the function        
 # multiprogs()
-systemIni = systemIni_insec
+systemIni = systemIni_fs
 multiprogs_DRAMSim2()
 # singleprogs()

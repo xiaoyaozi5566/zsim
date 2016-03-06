@@ -502,12 +502,16 @@ uint32_t TakeBarrier(uint32_t tid, uint32_t cid) {
         info("Thread %d entering fast-forward", tid);
         clearCid(tid);
         zinfo->sched->leave(procIdx, tid, newCid);
+        newCid = INVALID_CID;
         SimThreadFini(tid);
         fPtrs[tid] = GetFFPtrs();
     } else if (zinfo->terminationConditionMet) {
         info("Termination condition met, exiting");
         zinfo->sched->leave(procIdx, tid, newCid);
         SimEnd(); //need to call this on a per-process basis...
+    } else {
+        // Set fPtrs to those of the new core after possible context switch
+        fPtrs[tid] = cores[tid]->GetFuncPtrs();
     }
 
     return newCid;
