@@ -61,7 +61,7 @@ class DRAMSimMemory : public MemObject { //one DRAMSim controller
 
     public:
         DRAMSimMemory(std::string& dramTechIni, std::string& dramSystemIni, std::string& outputDir, std::string& traceName, uint32_t capacityMB,
-                uint64_t cpuFreqHz,  uint32_t _minLatency, uint32_t _domain, const g_string& _name);
+                uint64_t cpuFreqHz,  uint32_t _minLatency, uint32_t _domain, const g_string& _name, uint32_t num_pids);
 
         const char* getName() {return name.c_str();}
 

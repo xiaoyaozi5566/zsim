@@ -109,7 +109,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
         issue_time.push_back(perRankTime);
     }
     
-    for (size_t i=0;i<2;i++)
+    for (size_t i=0;i<3;i++)
         for (size_t j=0;j<3;j++)
             previousBanks[i][j] = 1000;
         

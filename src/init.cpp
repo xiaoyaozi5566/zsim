@@ -328,6 +328,9 @@ MemObject* BuildMemoryController(Config& config, uint32_t lineSize, uint32_t fre
 
     //Latency
     uint32_t latency = (type == "DDR")? -1 : config.get<uint32_t>("sys.mem.latency", 100);
+    
+    //Domain
+    uint32_t num_pids = config.get<uint32_t>("sys.mem.num_pids", 2);
 
     MemObject* mem = nullptr;
     if (type == "Simple") {
@@ -357,7 +360,7 @@ MemObject* BuildMemoryController(Config& config, uint32_t lineSize, uint32_t fre
         string dramSystemIni = config.get<const char*>("sys.mem.systemIni");
         string outputDir = config.get<const char*>("sys.mem.outputDir");
         string traceName = config.get<const char*>("sys.mem.traceName");
-        mem = new DRAMSimMemory(dramTechIni, dramSystemIni, outputDir, traceName, capacity, cpuFreqHz, latency, domain, name);
+        mem = new DRAMSimMemory(dramTechIni, dramSystemIni, outputDir, traceName, capacity, cpuFreqHz, latency, domain, name, num_pids);
     } else if (type == "Detailed") {
         // FIXME(dsm): Don't use a separate config file... see DDRMemory
         g_string mcfg = config.get<const char*>("sys.mem.paramFile", "");
