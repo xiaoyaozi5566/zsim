@@ -444,7 +444,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
             unsigned rel_time = currentClockCycle % BTB_DELAY;
             // Group banks for triple alternation
             unsigned bank_group = (currentClockCycle/BTB_DELAY) % 3;
-            unsigned current_domain = (currentClockCycle/BTB_DELAY) % 2;
+            unsigned current_domain = (currentClockCycle/BTB_DELAY) % num_pids;
             if (rel_time == 0)
             {
                 bool foundIssuable = false;
