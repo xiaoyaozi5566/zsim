@@ -101,7 +101,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 		queues.push_back(perBankQueue);
 	}
 
-    for (size_t i=0;i<2;i++)
+    for (size_t i=0;i<3;i++)
     {
         BusPacket1D perRankQueue = BusPacket1D();
         cmdBuffer.push_back(perRankQueue);
@@ -144,7 +144,7 @@ CommandQueue::~CommandQueue()
 			queues[r][b].clear();
 		}
 	}
-    for (size_t i=0;i<2;i++)
+    for (size_t i=0;i<3;i++)
     {
         cmdBuffer[i].clear();
         issue_time[i].clear();
@@ -261,30 +261,66 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     rankRequests[i] = make_pair(banksToAccess.size(), queue.size());
                 }
                 // printf("enter scheduling cycle 1\n");
-                pair<unsigned, unsigned> temp = selectRanks(rankRequests, NUM_RANKS);
-                unsigned chosenRanks[2];
-                chosenRanks[0] = temp.first;
-                chosenRanks[1] = temp.second;
-                if (previousRanks.size() > 1)
+                unsigned* temp = selectRanks(rankRequests, NUM_RANKS);
+                unsigned chosenRanks[3];
+                for (size_t i=0;i<3;i++)
+                    chosenRanks[i] = temp[i];
+                unsigned tempRanks[3];
+                for (size_t j=0;j<3;j++)
+                    tempRanks[j] = 1000;
+                bool slot_status[3];
+                for (size_t j=0;j<3;j++)
+                    slot_status[j] = false;
+                
+                for (size_t i=0;i<previousRanks.size();i++)
                 {
-                    if (previousRanks[1] == chosenRanks[0] || previousRanks[0] == chosenRanks[1])
-                    // we need to swap the ranks to meet the timing constraints
+                    for (size_t j=0;j<3;j++)
                     {
-                        unsigned temp = chosenRanks[0];
-                        chosenRanks[0] = chosenRanks[1];
-                        chosenRanks[1] = temp;
+                        if (previousRanks[i] == chosenRanks[j])
+                        {
+                            tempRanks[i] = chosenRanks[j];
+                            slot_status[i] = true;
+                            break;
+                        }
                     }
                 }
+                for (size_t i=0;i<3;i++)
+                {
+                    bool issued = false;
+                    // Found if the rank is already scheduled
+                    for (size_t j=0;j<3;j++)
+                    {
+                        if (chosenRanks[i] == tempRanks[j])
+                        {
+                            issued = true;
+                            break;
+                        }
+                    }
+                    // If not scheduled, find the empty slot to schedule it
+                    if (!issued)
+                    {
+                        for (size_t k=0;k<3;k++)
+                        {
+                            if (!slot_status[k])
+                            {
+                                tempRanks[k] = chosenRanks[i];
+                                slot_status[k] = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
                 // update previous ranks
                 previousRanks.clear();
-                for (size_t i=0;i<2;i++) previousRanks.push_back(chosenRanks[i]);
+                for (size_t i=0;i<3;i++) previousRanks.push_back(tempRanks[i]);
                 
                 // printf("enter scheduling cycle 2\n");
                 // Add bus packet to command buffers to be issued.
-                for (size_t i=0;i<2;i++)
+                for (size_t i=0;i<3;i++)
                 {
                     // printf("enter scheduling cycle 3\n");
-                    vector<BusPacket *> &queue = getCommandQueue(chosenRanks[i], getCurrentDomain());
+                    vector<BusPacket *> &queue = getCommandQueue(tempRanks[i], getCurrentDomain());
                     // record packet index used to remove items from queue later
                     vector<unsigned> items_to_remove;
                     set<unsigned> banksToAccess;
@@ -359,7 +395,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 // printf("cmdBuffer size %d %d\n", cmdBuffer[0].size(), cmdBuffer[1].size());
             }
             bool foundIssuable = false;
-            for (size_t i=0;i<2;i++)
+            for (size_t i=0;i<3;i++)
             {
                 for (size_t j=0;j<issue_time[i].size();j++)
                 {
@@ -1098,15 +1134,16 @@ unsigned CommandQueue::getCurrentDomain()
     return (currentClockCycle/turn_length)%num_pids;
 }
 
-pair<unsigned, unsigned> CommandQueue::selectRanks(pair <unsigned, unsigned> * rankRequests, unsigned num_ranks)
+unsigned* CommandQueue::selectRanks(pair <unsigned, unsigned> * rankRequests, unsigned num_ranks)
 {
+    static unsigned chosenRanks[3];
+    for (size_t i=0;i<3;i++) chosenRanks[i] = 0;
     // record the id the the ranks
     unsigned *id = new unsigned[num_ranks];
-    unsigned firstRank = 0, secondRank = 0;
     for (size_t i=0;i<num_ranks;i++) id[i] = i;
     
     // bubble sort
-    pair <unsigned, unsigned> temp;
+    pair<unsigned, unsigned> temp;
     unsigned id_temp;
     for (size_t i=0;i<num_ranks;i++)
         for (size_t j=0;j<num_ranks-1-i;j++)
@@ -1133,12 +1170,14 @@ pair<unsigned, unsigned> CommandQueue::selectRanks(pair <unsigned, unsigned> * r
         }
     }
     
+    //Yao: there must be at least four ranks
     unsigned firstPos = 0;
+    unsigned secondPos = 0;
     for (size_t i=0;i<num_ranks;i++)
     {
         if (id[i] != getRefreshRank() && id[i] != refreshRank)
         {
-            firstRank = id[i];
+            chosenRanks[0] = id[i];
             firstPos = i;
             break;
         }
@@ -1147,11 +1186,20 @@ pair<unsigned, unsigned> CommandQueue::selectRanks(pair <unsigned, unsigned> * r
     {
         if (id[i] != getRefreshRank() && id[i] != refreshRank)
         {
-            secondRank = id[i];
+            chosenRanks[1] = id[i];
+            secondPos = i;
             break;
         }
     }
-    return make_pair(firstRank, secondRank);
+    for (size_t i=secondPos+1;i<num_ranks;i++)
+    {
+        if (id[i] != getRefreshRank() && id[i] != refreshRank)
+        {
+            chosenRanks[2] = id[i];
+            break;
+        }
+    }
+    return chosenRanks;
 }
 
 unsigned CommandQueue::getRefreshRank()

@@ -55,7 +55,7 @@
 //TODO: move to system ini file
 #define HISTOGRAM_BIN_SIZE 10
 #define BTB_DELAY 18
-#define BTR_DELAY 9
+#define BTR_DELAY 6
 #define RETURN_DELAY 56
 #define TURN_LENGTH 54
 #define WORST_CASE 60

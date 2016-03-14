@@ -78,7 +78,7 @@ public:
 	void update(); //SimulatorObject requirement
 	virtual vector<BusPacket *> &getCommandQueue(unsigned rank, unsigned bank_or_domain);
     unsigned getCurrentDomain();
-    pair<unsigned, unsigned> selectRanks(pair <unsigned, unsigned> * rankRequests, unsigned num_ranks);
+    unsigned* selectRanks(pair <unsigned, unsigned> * rankRequests, unsigned num_ranks);
 
 	//fields
 	
@@ -104,7 +104,7 @@ protected:
     vector< vector<BusPacket *> > cmdBuffer;
     vector< vector<unsigned> > issue_time;
     vector<unsigned> previousRanks;
-    unsigned previousBanks[2][3];
+    unsigned previousBanks[3][3];
     unsigned finish_refresh;
 
 	bool sendAct;
