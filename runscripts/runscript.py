@@ -229,6 +229,7 @@ def multiprogs_DRAMSim2():
         config_file = open(scriptgen_dir + "/" + filename, "w")
         config =  "sim = {\n"
         config += "    phaseLength = 10000;\n"
+        config += "    maxProcEventualDumps = 2;\n"
         config += "    statsPhaseInterval = 1;\n};\n\n"
         config += "sys = {\n"
         config += "    frequency = 2400;\n"
@@ -276,7 +277,8 @@ def multiprogs_DRAMSim2():
         if (p0 in redirect_input.keys()):
             config += "    input = \"" + redirect_input[p0] + "\";\n"
         config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"2000000 1000000\";\n"
+        config += "    ffiPoints = \"2000000 100000000\";\n"
+        config += "    dumpInstrs = 1000000L;\n"
         config += "};\n\n"
         config += "process1 = {\n"
         config += "    mask = \"1\";\n"
@@ -284,7 +286,8 @@ def multiprogs_DRAMSim2():
         if (p1 in redirect_input.keys()):
             config += "    input = \"" + redirect_input[p1] + "\";\n"
         config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"2000000 1000000\";\n"
+        config += "    ffiPoints = \"2000000 100000000\";\n"
+        config += "    dumpInstrs = 1000000L;\n"
         config += "};\n\n"
         
         config_file.write("%s\n" % config)
@@ -407,6 +410,6 @@ def singleprogs():
         
 # call the function        
 # multiprogs()
-systemIni = systemIni_fs
+systemIni = systemIni_sec
 multiprogs_DRAMSim2()
 # singleprogs()
