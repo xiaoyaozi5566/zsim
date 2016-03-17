@@ -60,6 +60,37 @@ redirect_input = {
     'leslie3d'   : spec_dir + "/leslie3d.in",
 }
 
+bench_name = {
+    'perlbench': 'per',
+    'astar' : 'ast',
+    'bzip2' : 'bzi',
+    'gcc'   : 'gcc',
+    'gobmk' : 'gob',
+    'h264ref' : 'h264',
+    'omnetpp': 'omn',
+    'hmmer' : 'hmm',
+    'libquantum' : 'lib',
+    'mcf'   : 'mcf',
+    'sjeng' : 'sje',
+    'xalan' : 'xal',
+    'bwaves': 'bwa',
+    'gamess': 'gam',
+    'milc'  : 'mil',
+    'zeusmp': 'zeu',
+    'gromacs': 'gro',
+    'cactusADM': 'cac',
+    'leslie3d': 'les',
+    'namd'  : 'nam',
+    'dealII': 'dea',
+    'soplex': 'sop',
+    'povray': 'pov',
+    'calculix': 'cal',
+    'GemsFDTD': 'gem',
+    'tonto' : 'ton',
+    'lbm'   : 'lbm',
+    'wrf'   : 'wrf'
+}
+
 multiprog = [['astar', 'bzip2'],
              ['bzip2', 'astar'],
              ['astar', 'mcf'],
@@ -90,6 +121,18 @@ multiprog = []
 
 for i in range(len(singleprog)-1):
     multiprog.append([singleprog[i], singleprog[i+1]])
+
+multiprog_8 = [
+    ['xalan', 'xalan', 'leslie3d', 'libquantum', 'lbm', 'leslie3d', 'leslie3d', 'GemsFDTD'] ,
+    ['milc', 'xalan', 'hmmer', 'calculix', 'xalan', 'bzip2', 'GemsFDTD', 'milc'] ,
+    ['omnetpp', 'gromacs', 'gamess', 'omnetpp', 'wrf', 'mcf', 'povray', 'mcf'] ,
+    ['gobmk', 'cactusADM', 'povray', 'povray', 'gromacs', 'milc', 'cactusADM', 'gamess'] ,
+    ['lbm', 'mcf', 'gcc', 'libquantum', 'zeusmp', 'povray', 'leslie3d', 'tonto'] ,
+    ['xalan', 'namd', 'mcf', 'soplex', 'tonto', 'xalan', 'mcf', 'lbm'] ,
+    ['perlbench', 'GemsFDTD', 'gcc', 'mcf', 'dealII', 'wrf', 'gobmk', 'lbm'] ,
+    ['bwaves', 'bzip2', 'sjeng', 'lbm', 'gcc', 'xalan', 'milc', 'tonto'] ,
+    ['bwaves', 'perlbench', 'GemsFDTD', 'gobmk', 'perlbench', 'calculix', 'perlbench', 'bwaves'] ,
+    ['mcf', 'calculix', 'xalan', 'libquantum', 'perlbench', 'tonto', 'lbm', 'omnetpp']]
 
 workloads = multiprog
 
@@ -211,6 +254,199 @@ def multiprogs():
         
         os.system("condor_submit " + scriptgen_dir + "/" + filename)
 
+def multiprogs_DRAMSim2_8():
+    workloads = multiprog_8
+    for workload in workloads:
+        name = ""
+        for bench in workload:
+            name += bench + "_"
+        name = name[:-1]
+        result_folder = results_dir + "/" + folder + "/" + name
+        stdout_folder = stdout_dir + "/" + folder
+        stderr_folder = stderr_dir + "/" + folder
+        if not os.path.exists(result_folder):
+            os.makedirs(result_folder)
+        if not os.path.exists(stdout_folder):
+            os.makedirs(stdout_folder)
+        if not os.path.exists(stderr_folder):
+            os.makedirs(stderr_folder)
+        # create config file
+        filename = name + ".cfg"
+        config_file = open(scriptgen_dir + "/" + filename, "w")
+        config =  "sim = {\n"
+        config += "    phaseLength = 10000;\n"
+        config += "    maxProcEventualDumps = 8;\n"
+        config += "    statsPhaseInterval = 1;\n};\n\n"
+        config += "sys = {\n"
+        config += "    frequency = 2400;\n"
+        config += "    lineSize = 64;\n"
+        config += "    cores = {\n"
+        config += "        nehalem = {\n"
+        config += "            type = \"OOO\";\n"
+        config += "            cores = 8;\n"
+        config += "            icache = \"l1\";\n"
+        config += "            dcache = \"l1\";\n"
+        config += "        };\n"
+        config += "    };\n\n"
+        config += "    caches = {\n"
+        config += "        l1 = {\n"
+        config += "            size = 32768;\n"
+        config += "            caches = 16;\n"
+        config += "            parent = \"l2\";\n"
+        config += "        };\n\n"
+        config += "        l2 = {\n"
+        config += "            size = 4194304;\n"
+        config += "            caches = 1;\n"
+        config += "            array = {\n"
+        config += "                ways = 64;\n"
+        config += "                hash = \"None\";\n"
+        config += "            };\n"
+        config += "            repl = {\n"
+        config += "                type = \"WayPart\";\n"
+        config += "            };\n"
+        config += "            parent = \"mem\";\n"
+        config += "        };\n\n"
+        config += "    };\n"
+        config += "    mem = {\n"
+        config += "        controllers = 1;\n"
+        config += "        latency = 10;\n"
+        config += "        num_pids = 8;\n" 
+        config += "        type = \"DRAMSim\";\n"
+        config += "        techIni = \"" + techIni + "\";\n"
+        config += "        systemIni = \"" + systemIni + "\";\n"
+        config += "        outputDir = \"" + results_dir + "/" + folder + "\";\n"
+        config += "        traceName = \"" + name + "\";\n"
+        config += "    };\n"
+        config += "};\n\n"
+        for i in range(len(workload)):
+            config += "process" + str(i) + " = {\n"
+            config += "    mask = \"" + str(i) + "\";\n"
+            config += "    command = \"" + specinvoke[workload[i]] + "\";\n"
+            if (workload[i] in redirect_input.keys()):
+                config += "    input = \"" + redirect_input[workload[i]] + "\";\n"
+            config += "    startFastForwarded = True;\n"
+            config += "    ffiPoints = \"2000000 1000000000\";\n"
+            config += "    dumpInstrs = 1000000L;\n"
+            config += "};\n\n"
+        
+        config_file.write("%s\n" % config)
+        config_file.close()
+        # create run script
+        filename = name + ".sh"
+        bash_file = open(scriptgen_dir + "/" + filename, "w")
+        command = "#!/bin/bash\n\n"
+        command += zsim_home + "/build/opt/zsim " + scriptgen_dir + "/" + name + ".cfg " + result_folder + "\n"
+        os.system("chmod +x " + scriptgen_dir + "/" + filename)
+        
+        bash_file.write("%s\n" % command)
+        bash_file.close()
+        # create submit script
+        filename = name + ".sub"
+        submit_file = open(scriptgen_dir + "/" + filename, "w")
+        env = "Universe = Vanilla\n"
+        env += "getenv = True\n"
+        env += "Executable = " + scriptgen_dir + "/" + name + ".sh\n"
+        env += "Output = " + stdout_folder + "/" + name + ".out\n"
+        env += "Error = " + stderr_folder + "/" + name + ".err\n"
+        env += "Log = " + stdout_folder + "/" + name + ".log\n"
+        env += "Queue\n"
+        
+        submit_file.write("%s\n" % env)
+        submit_file.close()
+        
+        os.system("condor_submit " + scriptgen_dir + "/" + filename)
+        time.sleep(5)
+
+def singleprogs():
+    for workload in singleprog:
+        result_folder = results_dir + "/" + folder + "/" + workload
+        stdout_folder = stdout_dir + "/" + folder
+        stderr_folder = stderr_dir + "/" + folder
+        if not os.path.exists(result_folder):
+            os.makedirs(result_folder)
+        if not os.path.exists(stdout_folder):
+            os.makedirs(stdout_folder)
+        if not os.path.exists(stderr_folder):
+            os.makedirs(stderr_folder)
+        # create config file
+        filename = workload + ".cfg"
+        config_file = open(scriptgen_dir + "/" + filename, "w")
+        config =  "sim = {\n"
+        config += "    phaseLength = 10000;\n};\n\n"
+        config += "sys = {\n"
+        config += "    frequency = 2400;\n"
+        config += "    lineSize = 64;\n"
+        config += "    cores = {\n"
+        config += "        OutOfOrder = {\n"
+        config += "            type = \"OOO\";\n"
+        config += "            icache = \"l1d\";\n"
+        config += "            dcache = \"l1i\";\n"
+        config += "        };\n"
+        config += "    };\n\n"
+        config += "    caches = {\n"
+        config += "        l1d = {\n"
+        config += "            size = 32768;\n"
+        config += "            parent = \"l2\";\n"
+        config += "        };\n\n"
+        config += "        l1i = {\n"
+        config += "            size = 32768;\n"
+        config += "            parent = \"l2\";\n"
+        config += "        };\n\n"        
+        config += "        l2 = {\n"
+        config += "            size = 524288;\n"
+        config += "            caches = 1;\n"
+        config += "            array = {\n"
+        config += "                ways = 8;\n"
+        config += "                hash = \"None\";\n"
+        config += "            };\n"
+        config += "            parent = \"mem\";\n"
+        config += "        };\n\n"
+        config += "    };\n"
+        config += "    mem = {\n"
+        config += "        controllers = 1;\n"
+        config += "        latency = 10;\n"
+        config += "        type = \"DRAMSim\";\n"
+        config += "        techIni = \"" + techIni + "\";\n"
+        config += "        systemIni = \"" + systemIni + "\";\n"
+        config += "        outputDir = \"" + results_dir + "/" + folder + "\";\n"
+        config += "        traceName = \"" + workload + "\";\n"
+        config += "    };\n"
+        config += "};\n\n"
+        config += "process0 = {\n"
+        config += "    command = \"" + specinvoke[workload] + "\";\n"
+        if (workload in redirect_input.keys()):
+            config += "    input = \"" + redirect_input[workload] + "\";\n"
+        config += "    startFastForwarded = True;\n"
+        config += "    ffiPoints = \"2000000 1000000\";\n"
+        config += "};\n\n"
+        
+        config_file.write("%s\n" % config)
+        config_file.close()
+        # create run script
+        filename = workload + ".sh"
+        bash_file = open(scriptgen_dir + "/" + filename, "w")
+        command = "#!/bin/bash\n\n"
+        command += zsim_home + "/build/opt/zsim " + scriptgen_dir + "/" + workload + ".cfg " + result_folder + "\n"
+        os.system("chmod +x " + scriptgen_dir + "/" + filename)
+        
+        bash_file.write("%s\n" % command)
+        bash_file.close()
+        # create submit script
+        filename = workload + ".sub"
+        submit_file = open(scriptgen_dir + "/" + filename, "w")
+        env = "Universe = Vanilla\n"
+        env += "getenv = True\n"
+        env += "Executable = " + scriptgen_dir + "/" + workload + ".sh\n"
+        env += "Output = " + stdout_folder + "/" + workload + ".out\n"
+        env += "Error = " + stderr_folder + "/" + workload + ".err\n"
+        env += "Log = " + stdout_folder + "/" + workload + ".log\n"
+        env += "Queue\n"
+        
+        submit_file.write("%s\n" % env)
+        submit_file.close()
+        
+        os.system("condor_submit " + scriptgen_dir + "/" + filename)
+        
 def multiprogs_DRAMSim2():
     for workload in workloads:
         p0 = workload[0]
@@ -317,99 +553,10 @@ def multiprogs_DRAMSim2():
         
         os.system("condor_submit " + scriptgen_dir + "/" + filename)
         time.sleep(5)
-
-def singleprogs():
-    for workload in singleprog:
-        result_folder = results_dir + "/" + folder + "/" + workload
-        stdout_folder = stdout_dir + "/" + folder
-        stderr_folder = stderr_dir + "/" + folder
-        if not os.path.exists(result_folder):
-            os.makedirs(result_folder)
-        if not os.path.exists(stdout_folder):
-            os.makedirs(stdout_folder)
-        if not os.path.exists(stderr_folder):
-            os.makedirs(stderr_folder)
-        # create config file
-        filename = workload + ".cfg"
-        config_file = open(scriptgen_dir + "/" + filename, "w")
-        config =  "sim = {\n"
-        config += "    phaseLength = 10000;\n};\n\n"
-        config += "sys = {\n"
-        config += "    frequency = 2400;\n"
-        config += "    lineSize = 64;\n"
-        config += "    cores = {\n"
-        config += "        OutOfOrder = {\n"
-        config += "            type = \"OOO\";\n"
-        config += "            icache = \"l1d\";\n"
-        config += "            dcache = \"l1i\";\n"
-        config += "        };\n"
-        config += "    };\n\n"
-        config += "    caches = {\n"
-        config += "        l1d = {\n"
-        config += "            size = 32768;\n"
-        config += "            parent = \"l2\";\n"
-        config += "        };\n\n"
-        config += "        l1i = {\n"
-        config += "            size = 32768;\n"
-        config += "            parent = \"l2\";\n"
-        config += "        };\n\n"        
-        config += "        l2 = {\n"
-        config += "            size = 524288;\n"
-        config += "            caches = 1;\n"
-        config += "            array = {\n"
-        config += "                ways = 8;\n"
-        config += "                hash = \"None\";\n"
-        config += "            };\n"
-        config += "            parent = \"mem\";\n"
-        config += "        };\n\n"
-        config += "    };\n"
-        config += "    mem = {\n"
-        config += "        controllers = 1;\n"
-        config += "        latency = 10;\n"
-        config += "        type = \"DRAMSim\";\n"
-        config += "        techIni = \"" + techIni + "\";\n"
-        config += "        systemIni = \"" + systemIni + "\";\n"
-        config += "        outputDir = \"" + results_dir + "/" + folder + "\";\n"
-        config += "        traceName = \"" + workload + "\";\n"
-        config += "    };\n"
-        config += "};\n\n"
-        config += "process0 = {\n"
-        config += "    command = \"" + specinvoke[workload] + "\";\n"
-        if (workload in redirect_input.keys()):
-            config += "    input = \"" + redirect_input[workload] + "\";\n"
-        config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"2000000 1000000\";\n"
-        config += "};\n\n"
-        
-        config_file.write("%s\n" % config)
-        config_file.close()
-        # create run script
-        filename = workload + ".sh"
-        bash_file = open(scriptgen_dir + "/" + filename, "w")
-        command = "#!/bin/bash\n\n"
-        command += zsim_home + "/build/opt/zsim " + scriptgen_dir + "/" + workload + ".cfg " + result_folder + "\n"
-        os.system("chmod +x " + scriptgen_dir + "/" + filename)
-        
-        bash_file.write("%s\n" % command)
-        bash_file.close()
-        # create submit script
-        filename = workload + ".sub"
-        submit_file = open(scriptgen_dir + "/" + filename, "w")
-        env = "Universe = Vanilla\n"
-        env += "getenv = True\n"
-        env += "Executable = " + scriptgen_dir + "/" + workload + ".sh\n"
-        env += "Output = " + stdout_folder + "/" + workload + ".out\n"
-        env += "Error = " + stderr_folder + "/" + workload + ".err\n"
-        env += "Log = " + stdout_folder + "/" + workload + ".log\n"
-        env += "Queue\n"
-        
-        submit_file.write("%s\n" % env)
-        submit_file.close()
-        
-        os.system("condor_submit " + scriptgen_dir + "/" + filename)
         
 # call the function        
 # multiprogs()
-systemIni = systemIni_sec
-multiprogs_DRAMSim2()
+systemIni = systemIni_fs
+# multiprogs_DRAMSim2()
+multiprogs_DRAMSim2_8()
 # singleprogs()
