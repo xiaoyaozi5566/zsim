@@ -33,7 +33,7 @@ specinvoke = {
     'h264ref'    : spec_dir + "/h264ref -d " + spec_dir + "/foreman_ref_encoder_baseline.cfg",
     'omnetpp'    : spec_dir + "/omnetpp " + spec_dir + "/omnetpp.ini",
     # 'astar'      : spec_dir + "/astar " + spec_dir + "/BigLakes2048.cfg",
-    'xalan'      : spec_dir + "/Xalan -v " + spec_dir + "/t5.xml" + spec_dir + "/xalanc.xsl",
+    'xalan'      : spec_dir + "/Xalan -v " + spec_dir + "/t5.xml " + spec_dir + "/xalanc.xsl",
     'bwaves'     : spec_dir + "/bwaves", 
     'gamess'     : spec_dir + "/gamess",
     'milc'       : spec_dir + "/milc",
@@ -325,8 +325,8 @@ def multiprogs_DRAMSim2_8():
             if (workload[i] in redirect_input.keys()):
                 config += "    input = \"" + redirect_input[workload[i]] + "\";\n"
             config += "    startFastForwarded = True;\n"
-            config += "    ffiPoints = \"2000000 1000000000\";\n"
-            config += "    dumpInstrs = 1000000L;\n"
+            config += "    ffiPoints = \"1000000000 10000000000\";\n"
+            config += "    dumpInstrs = 100000000L;\n"
             config += "};\n\n"
         
         config_file.write("%s\n" % config)
@@ -417,7 +417,7 @@ def singleprogs():
         if (workload in redirect_input.keys()):
             config += "    input = \"" + redirect_input[workload] + "\";\n"
         config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"2000000 1000000\";\n"
+        config += "    ffiPoints = \"1000000000 100000000\";\n"
         config += "};\n\n"
         
         config_file.write("%s\n" % config)
