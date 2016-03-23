@@ -116,6 +116,7 @@ MemorySystem::MemorySystem(unsigned id, unsigned megsOfMemory, unsigned num_pids
 	if (megsOfMemory != 0)
 	{
 		NUM_RANKS = megsOfMemory / megsOfStoragePerRank;
+        printf("NUM_RANKS %d\n", NUM_RANKS);
 		NUM_RANKS_LOG = dramsim_log2(NUM_RANKS);
 		if (NUM_RANKS == 0)
 		{
