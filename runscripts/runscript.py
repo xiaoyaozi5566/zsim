@@ -19,7 +19,8 @@ systemIni_fs = "/home/yw438/zsim/DRAMSim2/system.ini.fs"
 # remove astar due to bugs
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
 
-specfp = ['bwaves', 'gamess', 'milc', 'zeusmp', 'gromacs', 'cactusADM', 'leslie3d', 'namd', 'dealII', 'soplex', 'povray', 'calculix', 'GemsFDTD', 'tonto', 'lbm', 'wrf']
+# remove calculix, povray, wrf due to bugs
+specfp = ['bwaves', 'gamess', 'milc', 'zeusmp', 'gromacs', 'cactusADM', 'leslie3d', 'namd', 'dealII', 'soplex', 'GemsFDTD', 'tonto', 'lbm']
 
 specinvoke = {
     'perlbench'  : spec_dir + "/perlbench -I" + spec_dir + "/lib " + spec_dir + "/checkspam.pl 2500 5 25 11 150 1 1 1 1",
@@ -123,16 +124,56 @@ for i in range(len(singleprog)-1):
     multiprog.append([singleprog[i], singleprog[i+1]])
 
 multiprog_8 = [
-    ['xalan', 'xalan', 'leslie3d', 'libquantum', 'lbm', 'leslie3d', 'leslie3d', 'GemsFDTD'] ,
-    ['milc', 'xalan', 'hmmer', 'calculix', 'xalan', 'bzip2', 'GemsFDTD', 'milc'] ,
-    ['omnetpp', 'gromacs', 'gamess', 'omnetpp', 'wrf', 'mcf', 'povray', 'mcf'] ,
-    ['gobmk', 'cactusADM', 'povray', 'povray', 'gromacs', 'milc', 'cactusADM', 'gamess'] ,
-    ['lbm', 'mcf', 'gcc', 'libquantum', 'zeusmp', 'povray', 'leslie3d', 'tonto'] ,
-    ['xalan', 'namd', 'mcf', 'soplex', 'tonto', 'xalan', 'mcf', 'lbm'] ,
-    ['perlbench', 'GemsFDTD', 'gcc', 'mcf', 'dealII', 'wrf', 'gobmk', 'lbm'] ,
-    ['bwaves', 'bzip2', 'sjeng', 'lbm', 'gcc', 'xalan', 'milc', 'tonto'] ,
-    ['bwaves', 'perlbench', 'GemsFDTD', 'gobmk', 'perlbench', 'calculix', 'perlbench', 'bwaves'] ,
-    ['mcf', 'calculix', 'xalan', 'libquantum', 'perlbench', 'tonto', 'lbm', 'omnetpp']]
+    ['milc', 'GemsFDTD', 'gromacs', 'milc', 'milc', 'sjeng', 'bwaves', 'soplex'] ,
+    ['gobmk', 'mcf', 'bwaves', 'namd', 'bzip2', 'hmmer', 'gromacs', 'libquantum'] ,
+    ['gcc', 'bwaves', 'soplex', 'bzip2', 'gromacs', 'tonto', 'gobmk', 'zeusmp'] ,
+    ['libquantum', 'perlbench', 'GemsFDTD', 'gcc', 'gromacs', 'gamess', 'sjeng', 'leslie3d'] ,
+    ['cactusADM', 'h264ref', 'omnetpp', 'gamess', 'leslie3d', 'soplex', 'hmmer', 'hmmer'] ,
+    ['libquantum', 'sjeng', 'gromacs', 'bwaves', 'dealII', 'perlbench', 'zeusmp', 'bwaves'] ,
+    ['GemsFDTD', 'bzip2', 'libquantum', 'lbm', 'zeusmp', 'milc', 'omnetpp', 'gamess'] ,
+    ['GemsFDTD', 'namd', 'milc', 'zeusmp', 'tonto', 'gamess', 'mcf', 'GemsFDTD'] ,
+    ['namd', 'omnetpp', 'dealII', 'tonto', 'leslie3d', 'gcc', 'zeusmp', 'namd'] ,
+    ['gobmk', 'lbm', 'h264ref', 'bwaves', 'mcf', 'mcf', 'bzip2', 'libquantum'] ,
+    ]
+
+multiprog_8 = [
+    ['xalan', 'xalan', 'soplex', 'soplex', 'mcf', 'mcf', 'omnetpp', 'omnetpp'],
+    ['milc', 'milc', 'lbm', 'lbm', 'xalan', 'xalan', 'zeusmp', 'zeusmp'],
+    ['lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm'],
+    ['libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum'],
+    ['mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf'],
+    ['milc', 'milc', 'milc', 'milc', 'milc', 'milc', 'milc', 'milc'],
+    ['zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp'],
+    ['GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD'],
+    ['xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan']
+]
+
+multiprog_8 = [
+    ['perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench'] ,
+    ['bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2'] ,
+    ['gcc', 'gcc', 'gcc', 'gcc', 'gcc', 'gcc', 'gcc', 'gcc'] ,
+    ['mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf'] ,
+    ['gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk'] ,
+    ['hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer'] ,
+    ['sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng'] ,
+    ['libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum'] ,
+    ['h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref'] ,
+    ['omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp'] ,
+    ['xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan'] ,
+    ['bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves'] ,
+    ['gamess', 'gamess', 'gamess', 'gamess', 'gamess', 'gamess', 'gamess', 'gamess'] ,
+    ['milc', 'milc', 'milc', 'milc', 'milc', 'milc', 'milc', 'milc'] ,
+    ['zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp'] ,
+    ['gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs'] ,
+    ['cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM'] ,
+    ['leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d'] ,
+    ['namd', 'namd', 'namd', 'namd', 'namd', 'namd', 'namd', 'namd'] ,
+    ['dealII', 'dealII', 'dealII', 'dealII', 'dealII', 'dealII', 'dealII', 'dealII'] ,
+    ['soplex', 'soplex', 'soplex', 'soplex', 'soplex', 'soplex', 'soplex', 'soplex'] ,
+    ['GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD'] ,
+    ['tonto', 'tonto', 'tonto', 'tonto', 'tonto', 'tonto', 'tonto', 'tonto'] ,
+    ['lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm'] 
+]
 
 workloads = multiprog
 
@@ -148,16 +189,16 @@ if not os.path.exists(stdout_dir):
 if not os.path.exists(stderr_dir):
     os.makedirs(stderr_dir)
     
-folder = sys.argv[1]
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
+# folder = sys.argv[1]
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
 
 def multiprogs():
     for workload in workloads:
@@ -278,7 +319,7 @@ def multiprogs_DRAMSim2_8():
         config += "    maxProcEventualDumps = 8;\n"
         config += "    statsPhaseInterval = 1;\n};\n\n"
         config += "sys = {\n"
-        config += "    frequency = 2400;\n"
+        config += "    frequency = 1200;\n"
         config += "    lineSize = 64;\n"
         config += "    cores = {\n"
         config += "        nehalem = {\n"
@@ -310,6 +351,7 @@ def multiprogs_DRAMSim2_8():
         config += "    mem = {\n"
         config += "        controllers = 1;\n"
         config += "        latency = 10;\n"
+        config += "        capacityMB = 32768\n"
         config += "        num_pids = 8;\n" 
         config += "        type = \"DRAMSim\";\n"
         config += "        techIni = \"" + techIni + "\";\n"
@@ -374,7 +416,7 @@ def singleprogs():
         config =  "sim = {\n"
         config += "    phaseLength = 10000;\n};\n\n"
         config += "sys = {\n"
-        config += "    frequency = 2400;\n"
+        config += "    frequency = 1200;\n"
         config += "    lineSize = 64;\n"
         config += "    cores = {\n"
         config += "        OutOfOrder = {\n"
@@ -405,6 +447,7 @@ def singleprogs():
         config += "    mem = {\n"
         config += "        controllers = 1;\n"
         config += "        latency = 10;\n"
+        config += "        capacityMB = 32768\n"
         config += "        type = \"DRAMSim\";\n"
         config += "        techIni = \"" + techIni + "\";\n"
         config += "        systemIni = \"" + systemIni + "\";\n"
@@ -417,7 +460,7 @@ def singleprogs():
         if (workload in redirect_input.keys()):
             config += "    input = \"" + redirect_input[workload] + "\";\n"
         config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"1000000000 100000000\";\n"
+        config += "    ffiPoints = \"50000000000 100000000\";\n"
         config += "};\n\n"
         
         config_file.write("%s\n" % config)
@@ -556,7 +599,52 @@ def multiprogs_DRAMSim2():
         
 # call the function        
 # multiprogs()
-systemIni = systemIni_fs
+# systemIni = systemIni_fs
 # multiprogs_DRAMSim2()
-multiprogs_DRAMSim2_8()
+# multiprogs_DRAMSim2_8()
 # singleprogs()
+
+# # baseline scheme
+# folder = "insec_test"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_insec
+# multiprogs_DRAMSim2_8()
+#
+# SecMem
+folder = "sec_random"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_sec
+multiprogs_DRAMSim2_8()
+#
+# # FS
+# folder = "fs_test"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_fs
+# multiprogs_DRAMSim2_8()
