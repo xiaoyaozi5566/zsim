@@ -64,6 +64,7 @@ public:
 	unsigned rank;
     unsigned srcId;
 	uint64_t physicalAddress;
+    uint64_t arrivalTime;
 	void *data;
 
 	//Functions

@@ -64,6 +64,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
         num_reqs(0),
         num_issued(0),
         num_same_bank(0),
+        queuing_delay(0),
         sendAct(true)
 {
 	//set here to avoid compile errors
@@ -162,6 +163,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
 	unsigned rank = newBusPacket->rank;
 	unsigned bank = newBusPacket->bank;
     unsigned srcId = newBusPacket->srcId;
+    newBusPacket->arrivalTime = currentClockCycle;
     if (newBusPacket->busPacketType == ACTIVATE)
     {
         total_reqs++;
@@ -177,6 +179,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
         {
             printf("total_reqs: %ld, wait_latency: %ld\n", total_reqs, wait_latency);
             printf("num_reqs: %f, num_issued: %f, num_same_bank: %f\n", num_reqs*1.0/num_turns, num_issued*1.0/num_turns, num_same_bank*1.0/num_turns);
+            printf("queueing_delay: %f\n", queuing_delay*1.0/num_issued);
         }      
     }
     
@@ -397,6 +400,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             unsigned activate_time = currentClockCycle + order*BTB_DELAY + i*BTR_DELAY;
                             unsigned rdwr_time = activate_time + tRCD;
                             banksToAccess.insert(bank);
+                            queuing_delay += activate_time - queue[j]->arrivalTime;
                             // printf("will issue bank %d @ position %d\n", bank, j);
                             items_to_remove.push_back(j);
                             cmdBuffer[i].push_back(queue[j]);

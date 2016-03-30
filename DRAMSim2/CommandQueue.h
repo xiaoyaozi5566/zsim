@@ -112,6 +112,7 @@ protected:
     uint64_t num_reqs;
     uint64_t num_issued;
     uint64_t num_same_bank;
+    uint64_t queuing_delay;
 
 	bool sendAct;
 };

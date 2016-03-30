@@ -56,6 +56,7 @@ BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr,
 	rank(r),
     srcId(id),
 	physicalAddress(physicalAddr),
+    arrivalTime(0),
 	data(dat)
 {}
 
