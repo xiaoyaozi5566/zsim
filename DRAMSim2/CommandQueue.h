@@ -106,6 +106,8 @@ protected:
     vector<unsigned> previousRanks;
     unsigned previousBanks[3][3];
     unsigned finish_refresh;
+    uint64_t wait_latency;
+    uint64_t num_reqs;
 
 	bool sendAct;
 };

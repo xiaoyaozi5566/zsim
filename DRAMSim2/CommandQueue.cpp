@@ -58,6 +58,8 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 		refreshRank(0),
 		refreshWaiting(false),
 		finish_refresh(100000),
+        wait_latency(0),
+        num_reqs(0),
         sendAct(true)
 {
 	//set here to avoid compile errors
@@ -156,6 +158,23 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
 	unsigned rank = newBusPacket->rank;
 	unsigned bank = newBusPacket->bank;
     unsigned srcId = newBusPacket->srcId;
+    if (newBusPacket->busPacketType == ACTIVATE)
+    {
+        num_reqs++;
+        unsigned period = turn_length*num_pids;
+        unsigned period_start = (currentClockCycle/period)*period;
+        unsigned next_turn;
+        if (period_start + srcId*turn_length > currentClockCycle)
+            next_turn = period_start + srcId*turn_length;
+        else
+            next_turn = period_start + srcId*turn_length + period;
+        wait_latency += next_turn - currentClockCycle;
+        if (num_reqs % 1000 == 0)
+        {
+            printf("num_reqs: %ld, wait_latency: %ld\n", num_reqs, wait_latency);
+        }      
+    }
+    
     // printf("enqueue packet %lx @ cycle %ld\n", newBusPacket->physicalAddress, currentClockCycle);
 	if (queuingStructure==PerRank)
 	{
