@@ -107,7 +107,11 @@ protected:
     unsigned previousBanks[3][3];
     unsigned finish_refresh;
     uint64_t wait_latency;
+    uint64_t total_reqs;
+    uint64_t num_turns;
     uint64_t num_reqs;
+    uint64_t num_issued;
+    uint64_t num_same_bank;
 
 	bool sendAct;
 };

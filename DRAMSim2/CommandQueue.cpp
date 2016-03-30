@@ -59,7 +59,11 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 		refreshWaiting(false),
 		finish_refresh(100000),
         wait_latency(0),
+        total_reqs(0),
+        num_turns(0),
         num_reqs(0),
+        num_issued(0),
+        num_same_bank(0),
         sendAct(true)
 {
 	//set here to avoid compile errors
@@ -160,7 +164,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
     unsigned srcId = newBusPacket->srcId;
     if (newBusPacket->busPacketType == ACTIVATE)
     {
-        num_reqs++;
+        total_reqs++;
         unsigned period = turn_length*num_pids;
         unsigned period_start = (currentClockCycle/period)*period;
         unsigned next_turn;
@@ -169,9 +173,10 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
         else
             next_turn = period_start + srcId*turn_length + period;
         wait_latency += next_turn - currentClockCycle;
-        if (num_reqs % 1000 == 0)
+        if (total_reqs % 1000 == 0)
         {
-            printf("num_reqs: %ld, wait_latency: %ld\n", num_reqs, wait_latency);
+            printf("total_reqs: %ld, wait_latency: %ld\n", total_reqs, wait_latency);
+            printf("num_reqs: %f, num_issued: %f, num_same_bank: %f\n", num_reqs*1.0/num_turns, num_issued*1.0/num_turns, num_same_bank*1.0/num_turns);
         }      
     }
     
@@ -254,6 +259,12 @@ bool CommandQueue::pop(BusPacket **busPacket)
             // at the start of a turn, decide what transactions to issue
             if (rel_time == 0)
             {
+                num_turns++;
+                for (size_t i=0;i<NUM_RANKS;i++)
+                {
+                    vector<BusPacket *> &queue = getCommandQueue(i, getCurrentDomain());
+                    num_reqs += queue.size()/2;
+                }
                 // printf("enter scheduling cycle 0\n");
                 pair<unsigned, unsigned> *rankRequests = new pair<unsigned, unsigned>[NUM_RANKS];
                 // Find the number of requests to different banks for each rank
@@ -343,6 +354,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     // record packet index used to remove items from queue later
                     vector<unsigned> items_to_remove;
                     set<unsigned> banksToAccess;
+                    set<unsigned> banksStats;
                     unsigned tempBanks[3];
                     for (size_t j=0;j<3;j++)
                         tempBanks[j] = 1000;
@@ -358,6 +370,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         unsigned bank = queue[j]->bank;
                         if (banksToAccess.find(bank) == banksToAccess.end() && queue[j]->busPacketType==ACTIVATE)
                         {
+                            num_issued++;
                             // decide which slot to issue this request
                             unsigned order;
                             if (bank == previousBanks[i][2]) 
@@ -392,6 +405,20 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             issue_time[i].push_back(rdwr_time);
                         }
                         if (banksToAccess.size() == 3) break;
+                    }
+                    // stats
+                    for (size_t j=0;j<queue.size();j++)
+                    {
+                        unsigned bank = queue[j]->bank;
+                        if (banksStats.find(bank) == banksStats.end() && queue[j]->busPacketType==ACTIVATE)
+                        {
+                            banksStats.insert(bank);
+                        }
+                        // requests that are going to the same bank/rank
+                        else if (banksStats.find(bank) != banksStats.end() && queue[j]->busPacketType==ACTIVATE)
+                        {
+                            num_same_bank++;
+                        }
                     }
                     // printf("enter scheduling cycle 5\n");
                     for (int j=items_to_remove.size()-1;j>=0;j--)
