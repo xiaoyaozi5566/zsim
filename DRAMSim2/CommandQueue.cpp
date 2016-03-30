@@ -373,7 +373,6 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         unsigned bank = queue[j]->bank;
                         if (banksToAccess.find(bank) == banksToAccess.end() && queue[j]->busPacketType==ACTIVATE)
                         {
-                            num_issued++;
                             // decide which slot to issue this request
                             unsigned order;
                             if (bank == previousBanks[i][2]) 
@@ -400,7 +399,6 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             unsigned activate_time = currentClockCycle + order*BTB_DELAY + i*BTR_DELAY;
                             unsigned rdwr_time = activate_time + tRCD;
                             banksToAccess.insert(bank);
-                            queuing_delay += activate_time - queue[j]->arrivalTime;
                             // printf("will issue bank %d @ position %d\n", bank, j);
                             items_to_remove.push_back(j);
                             cmdBuffer[i].push_back(queue[j]);
@@ -922,6 +920,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 	if ((*busPacket)->busPacketType==ACTIVATE)
 	{
 		tFAWCountdown[(*busPacket)->rank].push_back(tFAW);
+        queuing_delay += currentClockCycle - (*busPacket)->arrivalTime;
+        num_issued++;
 	}
     
 	return true;
