@@ -176,6 +176,33 @@ multiprog_8 = [
     ['lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm'] 
 ]
 
+multiprog_4 = [
+    ['perlbench', 'perlbench', 'perlbench', 'perlbench'] ,
+    ['bzip2', 'bzip2', 'bzip2', 'bzip2'] ,
+    ['gcc', 'gcc', 'gcc', 'gcc'] ,
+    ['mcf', 'mcf', 'mcf', 'mcf'] ,
+    ['gobmk', 'gobmk', 'gobmk', 'gobmk'] ,
+    ['hmmer', 'hmmer', 'hmmer', 'hmmer'] ,
+    ['sjeng', 'sjeng', 'sjeng', 'sjeng'] ,
+    ['libquantum', 'libquantum', 'libquantum', 'libquantum'] ,
+    ['h264ref', 'h264ref', 'h264ref', 'h264ref'] ,
+    ['omnetpp', 'omnetpp', 'omnetpp', 'omnetpp'] ,
+    ['xalan', 'xalan', 'xalan', 'xalan'] ,
+    ['bwaves', 'bwaves', 'bwaves', 'bwaves'] ,
+    ['gamess', 'gamess', 'gamess', 'gamess'] ,
+    ['milc', 'milc', 'milc', 'milc'] ,
+    ['zeusmp', 'zeusmp', 'zeusmp', 'zeusmp'] ,
+    ['gromacs', 'gromacs', 'gromacs', 'gromacs'] ,
+    ['cactusADM', 'cactusADM', 'cactusADM', 'cactusADM'] ,
+    ['leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d'] ,
+    ['namd', 'namd', 'namd', 'namd'] ,
+    ['dealII', 'dealII', 'dealII', 'dealII'] ,
+    ['soplex', 'soplex', 'soplex', 'soplex'] ,
+    ['GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD'] ,
+    ['tonto', 'tonto', 'tonto', 'tonto'] ,
+    ['lbm', 'lbm', 'lbm', 'lbm'] 
+]
+
 workloads = multiprog
 
 if not os.path.exists(scriptgen_dir):
@@ -317,7 +344,7 @@ def multiprogs_DRAMSim2_8():
         config_file = open(scriptgen_dir + "/" + filename, "w")
         config =  "sim = {\n"
         config += "    phaseLength = 10000;\n"
-        config += "    maxProcEventualDumps = 8;\n"
+        config += "    maxProcEventualDumps = " + str(len(workload)) + ";\n"
         config += "    statsPhaseInterval = 1;\n};\n\n"
         config += "sys = {\n"
         config += "    frequency = 1200;\n"
@@ -325,7 +352,7 @@ def multiprogs_DRAMSim2_8():
         config += "    cores = {\n"
         config += "        nehalem = {\n"
         config += "            type = \"OOO\";\n"
-        config += "            cores = 8;\n"
+        config += "            cores = " + str(len(workload)) + ";\n"
         config += "            icache = \"l1\";\n"
         config += "            dcache = \"l1\";\n"
         config += "        };\n"
@@ -333,14 +360,14 @@ def multiprogs_DRAMSim2_8():
         config += "    caches = {\n"
         config += "        l1 = {\n"
         config += "            size = 32768;\n"
-        config += "            caches = 16;\n"
+        config += "            caches = " + str(len(workload)*2) + ";\n"
         config += "            parent = \"l2\";\n"
         config += "        };\n\n"
         config += "        l2 = {\n"
-        config += "            size = 4194304;\n"
+        config += "            size = " + str(len(workload)*1048576) + ";\n"
         config += "            caches = 1;\n"
         config += "            array = {\n"
-        config += "                ways = 64;\n"
+        config += "                ways = " + str(len(workload)*8) + ";\n"
         config += "                hash = \"None\";\n"
         config += "            };\n"
         config += "            repl = {\n"
@@ -353,7 +380,7 @@ def multiprogs_DRAMSim2_8():
         config += "        controllers = 1;\n"
         config += "        latency = 10;\n"
         config += "        capacityMB = 32768\n"
-        config += "        num_pids = 8;\n" 
+        config += "        num_pids = " + str(len(workload)) + ";\n" 
         config += "        type = \"DRAMSim\";\n"
         config += "        techIni = \"" + techIni + "\";\n"
         config += "        systemIni = \"" + systemIni + "\";\n"
@@ -436,7 +463,7 @@ def singleprogs():
         config += "            parent = \"l2\";\n"
         config += "        };\n\n"        
         config += "        l2 = {\n"
-        config += "            size = 524288;\n"
+        config += "            size = 1048576;\n"
         config += "            caches = 1;\n"
         config += "            array = {\n"
         config += "                ways = 8;\n"
@@ -461,7 +488,7 @@ def singleprogs():
         if (workload in redirect_input.keys()):
             config += "    input = \"" + redirect_input[workload] + "\";\n"
         config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"50000000000 100000000\";\n"
+        config += "    ffiPoints = \"1000000000 100000000\";\n"
         config += "};\n\n"
         
         config_file.write("%s\n" % config)
@@ -603,25 +630,41 @@ def multiprogs_DRAMSim2():
 # systemIni = systemIni_fs
 # multiprogs_DRAMSim2()
 # multiprogs_DRAMSim2_8()
-# singleprogs()
+folder = "single_prog_1B_1MB"
+systemIni = systemIni_insec
+singleprogs()
 
-# # baseline scheme
-# folder = "insec_test"
-#
-# if not os.path.exists(results_dir + "/" + folder):
-#     os.makedirs(results_dir + "/" + folder)
-#
-# if not os.path.exists(stdout_dir + "/" + folder):
-#     os.makedirs(stdout_dir + "/" + folder)
-#
-# if not os.path.exists(stderr_dir + "/" + folder):
-#     os.makedirs(stderr_dir + "/" + folder)
-#
-# systemIni = systemIni_insec
-# multiprogs_DRAMSim2_8()
-#
+# baseline scheme
+folder = "insec_8_1MB"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_insec
+multiprogs_DRAMSim2_8()
+
 # SecMem
-folder = "sec_2banks"
+folder = "sec_8_1MB"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_sec
+multiprogs_DRAMSim2_8()
+
+folder = "sec_8_1MB_2banks"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)
@@ -634,18 +677,18 @@ if not os.path.exists(stderr_dir + "/" + folder):
 
 systemIni = systemIni_sec2banks
 multiprogs_DRAMSim2_8()
-#
-# # FS
-# folder = "fs_test"
-#
-# if not os.path.exists(results_dir + "/" + folder):
-#     os.makedirs(results_dir + "/" + folder)
-#
-# if not os.path.exists(stdout_dir + "/" + folder):
-#     os.makedirs(stdout_dir + "/" + folder)
-#
-# if not os.path.exists(stderr_dir + "/" + folder):
-#     os.makedirs(stderr_dir + "/" + folder)
-#
-# systemIni = systemIni_fs
-# multiprogs_DRAMSim2_8()
+
+# FS
+folder = "fs_8_1MB"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_fs
+multiprogs_DRAMSim2_8()
