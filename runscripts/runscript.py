@@ -13,6 +13,7 @@ stderr_dir = zsim_home + "/stderr"
 
 techIni = "/home/yw438/zsim/DRAMSim2/ini/DDR3_micron_64M_8B_x4_sg15.ini"
 systemIni_sec = "/home/yw438/zsim/DRAMSim2/system.ini.sec"
+systemIni_sec2banks = "/home/yw438/zsim/DRAMSim2/system.ini.sec2banks"
 systemIni_insec = "/home/yw438/zsim/DRAMSim2/system.ini.baseline"
 systemIni_fs = "/home/yw438/zsim/DRAMSim2/system.ini.fs"
 
@@ -620,7 +621,7 @@ def multiprogs_DRAMSim2():
 # multiprogs_DRAMSim2_8()
 #
 # SecMem
-folder = "sec_random"
+folder = "sec_2banks"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)
@@ -631,7 +632,7 @@ if not os.path.exists(stdout_dir + "/" + folder):
 if not os.path.exists(stderr_dir + "/" + folder):
     os.makedirs(stderr_dir + "/" + folder)
 
-systemIni = systemIni_sec
+systemIni = systemIni_sec2banks
 multiprogs_DRAMSim2_8()
 #
 # # FS
