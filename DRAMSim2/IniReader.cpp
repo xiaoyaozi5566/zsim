@@ -108,6 +108,14 @@ unsigned EPOCH_LENGTH;
 //row accesses allowed before closing (open page)
 unsigned TOTAL_ROW_ACCESSES;
 
+//turn length
+unsigned BTB_DELAY;
+unsigned BTR_DELAY;
+unsigned RETURN_DELAY;
+unsigned TURN_LENGTH;
+unsigned WORST_CASE;
+unsigned NUM_DIFF_BANKS;
+
 // strings and their associated enums
 string ROW_BUFFER_POLICY;
 string SCHEDULING_POLICY;
@@ -187,6 +195,12 @@ static ConfigMap configMap[] =
 	//Memory Controller related parameters
 	DEFINE_UINT_PARAM(TRANS_QUEUE_DEPTH,SYS_PARAM),
 	DEFINE_UINT_PARAM(CMD_QUEUE_DEPTH,SYS_PARAM),
+    DEFINE_UINT_PARAM(BTB_DELAY,SYS_PARAM),
+    DEFINE_UINT_PARAM(BTR_DELAY,SYS_PARAM),
+    DEFINE_UINT_PARAM(RETURN_DELAY,SYS_PARAM),
+    DEFINE_UINT_PARAM(TURN_LENGTH,SYS_PARAM),
+    DEFINE_UINT_PARAM(WORST_CASE,SYS_PARAM),
+    DEFINE_UINT_PARAM(NUM_DIFF_BANKS,SYS_PARAM),
 
 	DEFINE_UINT_PARAM(EPOCH_LENGTH,SYS_PARAM),
 	//Power

@@ -289,7 +289,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         {
                             banksToAccess.insert(bank);
                         }
-                        if (banksToAccess.size() == 3) break;
+                        if (banksToAccess.size() == NUM_DIFF_BANKS) break;
                     }
                     rankRequests[i] = make_pair(banksToAccess.size(), queue.size());
                 }
@@ -358,13 +358,13 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     vector<unsigned> items_to_remove;
                     set<unsigned> banksToAccess;
                     set<unsigned> banksStats;
-                    unsigned tempBanks[3];
-                    for (size_t j=0;j<3;j++)
+                    unsigned tempBanks[NUM_DIFF_BANKS];
+                    for (size_t j=0;j<NUM_DIFF_BANKS;j++)
                         tempBanks[j] = 1000;
                     // array to track each slot is taken or not
                     // Yao: the algorithm here can be improved
-                    bool slot_status[3];
-                    for (size_t j=0;j<3;j++)
+                    bool slot_status[NUM_DIFF_BANKS];
+                    for (size_t j=0;j<NUM_DIFF_BANKS;j++)
                         slot_status[j] = false;
                     // printf("enter scheduling cycle 4\n");
                     // printf("rank %d queue size %d\n", chosenRanks[i], queue.size());
@@ -374,18 +374,17 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         if (banksToAccess.find(bank) == banksToAccess.end() && queue[j]->busPacketType==ACTIVATE)
                         {
                             // decide which slot to issue this request
-                            unsigned order;
-                            if (bank == previousBanks[i][2]) 
+                            unsigned order = 0;
+                            for (size_t k=0;k<NUM_DIFF_BANKS;k++)
                             {
-                                order = 2;
-                            }   
-                            else if (bank == previousBanks[i][1]) 
-                            {
-                                order = 1;
+                                if (bank == previousBanks[i][NUM_DIFF_BANKS-1-k])
+                                {
+                                    order = NUM_DIFF_BANKS-1-k;
+                                    break;
+                                }
                             }
-                            else order = 0;
 
-                            for (size_t k=order;k<3;k++)
+                            for (size_t k=order;k<NUM_DIFF_BANKS;k++)
                             {
                                 if (!slot_status[k])
                                 {
@@ -406,7 +405,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             issue_time[i].push_back(activate_time);
                             issue_time[i].push_back(rdwr_time);
                         }
-                        if (banksToAccess.size() == 3) break;
+                        if (banksToAccess.size() == NUM_DIFF_BANKS) break;
                     }
                     // stats
                     for (size_t j=0;j<queue.size();j++)
@@ -430,7 +429,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     }
                     // printf("enter scheduling cycle 6\n");
                     // Update previous banks
-                    for (size_t j=0;j<3;j++)
+                    for (size_t j=0;j<NUM_DIFF_BANKS;j++)
                     {
                         previousBanks[i][j] = tempBanks[j];
                         // printf("previousBanks[%d][%d] = %ld\n", i, j, previousBanks[i][j]);
