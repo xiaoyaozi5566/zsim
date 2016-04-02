@@ -55,29 +55,6 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
     unsigned char plaintext[16];
     unsigned char ciphertext[16];
     unsigned char key[16]={0x0f, 0x1e, 0xdb, 0x65, 0xe6, 0xd1, 0x03, 0x5e, 0xfa, 0x94, 0x1f, 0x0c, 0x4b, 0x41, 0xff, 0xbb};
-    if (USE_RANDOM_ADDR)
-    {
-        for (size_t i=0;i<8;i++)
-            plaintext[i] = 0;
-        uint64_t temp = physicalAddress;
-        for (size_t i=0;i<8;i++)
-        {
-            plaintext[15-i] = temp%256;
-            temp = temp/256;
-        }
-        AES_set_encrypt_key(plaintext, 128, &expanded);
-        AES_encrypt(key, ciphertext, &expanded);
-
-        random_addr = 0;
-        for (size_t i=0;i<8;i++)
-        {
-            random_addr += ciphertext[8+i];
-            random_addr = random_addr*256;
-        }
-    
-        // printf("physical Address %lx, random address %lx\n", physicalAddress, random_addr);
-        physicalAddress = random_addr;
-    }
     
     if ((physicalAddress & transactionMask) != 0)
 	{
@@ -116,6 +93,30 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 				<< " colHigh:"<<colHighBitWidth<<" off:"<<byteOffsetWidth 
 				<< " Total:"<< (channelBitWidth + rankBitWidth + bankBitWidth + rowBitWidth + colLowBitWidth + colHighBitWidth + byteOffsetWidth));
 	}
+    
+    if (USE_RANDOM_ADDR)
+    {
+        for (size_t i=0;i<8;i++)
+            plaintext[i] = 0;
+        uint64_t temp = physicalAddress;
+        for (size_t i=0;i<8;i++)
+        {
+            plaintext[15-i] = temp%256;
+            temp = temp/256;
+        }
+        AES_set_encrypt_key(plaintext, 128, &expanded);
+        AES_encrypt(key, ciphertext, &expanded);
+
+        random_addr = 0;
+        for (size_t i=0;i<8;i++)
+        {
+            random_addr += ciphertext[8+i];
+            random_addr = random_addr*256;
+        }
+    
+        // printf("physical Address %lx, random address %lx\n", physicalAddress, random_addr);
+        physicalAddress = random_addr;
+    }
 
 	//perform various address mapping schemes
 	if (addressMappingScheme == Scheme1)
