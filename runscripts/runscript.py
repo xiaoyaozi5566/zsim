@@ -16,6 +16,8 @@ systemIni_sec = "/home/yw438/zsim/DRAMSim2/system.ini.sec"
 systemIni_sec2banks = "/home/yw438/zsim/DRAMSim2/system.ini.sec2banks"
 systemIni_insec = "/home/yw438/zsim/DRAMSim2/system.ini.baseline"
 systemIni_fs = "/home/yw438/zsim/DRAMSim2/system.ini.fs"
+systemIni_bankpar = "/home/yw438/zsim/DRAMSim2/system.ini.bankpar"
+systemIni_rankpar = "/home/yw438/zsim/DRAMSim2/system.ini.rankpar"
 
 # remove astar due to bugs
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
@@ -630,12 +632,71 @@ def multiprogs_DRAMSim2():
 # systemIni = systemIni_fs
 # multiprogs_DRAMSim2()
 # multiprogs_DRAMSim2_8()
-folder = "single_prog_1B_1MB"
-systemIni = systemIni_insec
-singleprogs()
+# folder = "single_prog_1B_1MB"
+# systemIni = systemIni_insec
+# singleprogs()
+#
+# # baseline scheme
+# folder = "insec_8_1MB"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_insec
+# multiprogs_DRAMSim2_8()
+#
+# # SecMem
+# folder = "sec_8_1MB"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_sec
+# multiprogs_DRAMSim2_8()
+#
+# folder = "sec_8_1MB_2banks"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_sec2banks
+# multiprogs_DRAMSim2_8()
+#
+# # FS
+# folder = "fs_8_1MB"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_fs
+# multiprogs_DRAMSim2_8()
 
-# baseline scheme
-folder = "insec_8_1MB"
+# bank partitioning
+folder = "bankpar"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)
@@ -646,11 +707,11 @@ if not os.path.exists(stdout_dir + "/" + folder):
 if not os.path.exists(stderr_dir + "/" + folder):
     os.makedirs(stderr_dir + "/" + folder)
 
-systemIni = systemIni_insec
+systemIni = systemIni_bankpar
 multiprogs_DRAMSim2_8()
 
-# SecMem
-folder = "sec_8_1MB"
+# rank partitioning
+folder = "rankpar"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)
@@ -661,34 +722,5 @@ if not os.path.exists(stdout_dir + "/" + folder):
 if not os.path.exists(stderr_dir + "/" + folder):
     os.makedirs(stderr_dir + "/" + folder)
 
-systemIni = systemIni_sec
-multiprogs_DRAMSim2_8()
-
-folder = "sec_8_1MB_2banks"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_sec2banks
-multiprogs_DRAMSim2_8()
-
-# FS
-folder = "fs_8_1MB"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_fs
+systemIni = systemIni_rankpar
 multiprogs_DRAMSim2_8()
