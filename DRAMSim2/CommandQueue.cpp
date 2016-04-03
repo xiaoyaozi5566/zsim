@@ -117,8 +117,15 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
     }
     
     for (size_t i=0;i<3;i++)
+    {
+        tempRanks[i] = 1000;
+        previousRanks.push_back(1000);
         for (size_t j=0;j<3;j++)
             previousBanks[i][j] = 1000;
+    }
+    
+    rankRequests = new pair<unsigned, unsigned>[NUM_RANKS];
+        
         
 	//FOUR-bank activation window
 	//	this will count the number of activations within a given window
@@ -183,7 +190,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
         }      
     }
     
-    // printf("enqueue packet %lx @ cycle %ld\n", newBusPacket->physicalAddress, currentClockCycle);
+    // printf("enqueue packet %lx from domain %d @ cycle %ld, rank %d, bank %d\n", newBusPacket->physicalAddress, newBusPacket->srcId, currentClockCycle, newBusPacket->rank, newBusPacket->bank);
 	if (queuingStructure==PerRank)
 	{
 		queues[rank][0].push_back(newBusPacket);
@@ -259,6 +266,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
         {
             unsigned rel_time = currentClockCycle % turn_length;
             
+            // pair<unsigned, unsigned> *rankRequests = new pair<unsigned, unsigned>[NUM_RANKS];
             // at the start of a turn, decide what transactions to issue
             if (rel_time == 0)
             {
@@ -269,7 +277,6 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     num_reqs += queue.size()/2;
                 }
                 // printf("enter scheduling cycle 0\n");
-                pair<unsigned, unsigned> *rankRequests = new pair<unsigned, unsigned>[NUM_RANKS];
                 // Find the number of requests to different banks for each rank
                 for (size_t i=0;i<NUM_RANKS;i++)
                 {
@@ -297,8 +304,10 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 unsigned* temp = selectRanks(rankRequests, NUM_RANKS);
                 unsigned chosenRanks[3];
                 for (size_t i=0;i<3;i++)
+                {
                     chosenRanks[i] = temp[i];
-                unsigned tempRanks[3];
+                }
+                    
                 for (size_t j=0;j<3;j++)
                     tempRanks[j] = 1000;
                 bool slot_status[3];
@@ -343,10 +352,6 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         }
                     }
                 }
-                
-                // update previous ranks
-                previousRanks.clear();
-                for (size_t i=0;i<3;i++) previousRanks.push_back(tempRanks[i]);
                 
                 // printf("enter scheduling cycle 2\n");
                 // Add bus packet to command buffers to be issued.
@@ -394,6 +399,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 }
                             }
                             tempBanks[order] = bank;
+                            // printf("rank %d, tempBanks[%d]=%d\n", tempRanks[i], order, bank);
                             
                             unsigned activate_time = currentClockCycle + order*BTB_DELAY + i*BTR_DELAY;
                             unsigned rdwr_time = activate_time + tRCD;
@@ -441,6 +447,79 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 //         printf("cmdBuffer[%ld][%ld] = %lx, rank %ld, issue time %d\n", j, k, cmdBuffer[j][k]->physicalAddress, cmdBuffer[j][k]->rank, issue_time[j][k]);
                 // printf("cmdBuffer size %d %d\n", cmdBuffer[0].size(), cmdBuffer[1].size());
             }
+            if (rel_time > 0 && rel_time < BTB_DELAY && USE_BETTER_SCHEDULE)
+            {
+                bool issueMore = false;
+                // check to see if there are empty ranks that can be used to issue more requests
+                for (size_t i=0;i<3;i++)
+                {
+                    if (rankRequests[tempRanks[i]].first == 0)
+                        issueMore = true;
+                }
+                if (issueMore)
+                {
+                    for (size_t i=0;i<NUM_RANKS;i++)
+                    {
+                        if (getRefreshRank() == i || refreshRank == i) 
+                        {
+                            continue;
+                        }
+                        bool canIssue = true;
+                        bool foundIssuable = false;
+                        for (size_t j=0;j<3;j++)
+                        {
+                            if (i == tempRanks[j] && rankRequests[tempRanks[j]].first != 0)
+                                canIssue = false;
+                        }
+                        if (!canIssue) continue;
+                        unsigned order = 0;
+                        for (size_t k=0;k<previousRanks.size();k++)
+                        {
+                            if (i == previousRanks[k]) 
+                            {
+                                order = k;
+                                break;
+                            }
+                        }
+                        for (size_t k=order;k<3;k++)
+                        {
+                            if (rankRequests[tempRanks[k]].first == 0)
+                            {
+                                order = k;
+                                break;
+                            }
+                        }                        
+                        vector<BusPacket *> &queue = getCommandQueue(i, getCurrentDomain());
+                        for (size_t j=0;j<queue.size();j++)
+                        {
+                            if (queue[j]->busPacketType==ACTIVATE)
+                            {
+                                unsigned activate_time = currentClockCycle - (currentClockCycle%turn_length) + BTB_DELAY + order*BTR_DELAY;
+                                unsigned rdwr_time = activate_time + tRCD;
+                                cmdBuffer[order].push_back(queue[j]);
+                                cmdBuffer[order].push_back(queue[j+1]);
+                                issue_time[order].push_back(activate_time);
+                                issue_time[order].push_back(rdwr_time);
+                                foundIssuable = true;
+                                queue.erase(queue.begin()+j+1);
+                                queue.erase(queue.begin()+j);
+                                tempRanks[order] = i;
+                                rankRequests[i].first = 1;
+                                previousBanks[order][NUM_DIFF_BANKS-1] = queue[j]->bank;
+                                break;                                
+                            }
+                        }
+                        if (foundIssuable) break;
+                    }
+                }  
+            }
+            if (rel_time == BTB_DELAY)
+            {
+                // update previous ranks
+                previousRanks.clear();
+                for (size_t i=0;i<3;i++) previousRanks.push_back(tempRanks[i]);
+            }
+                
             bool foundIssuable = false;
             for (size_t i=0;i<3;i++)
             {
@@ -451,6 +530,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     if (issue_time[i][j] == currentClockCycle)
                     {
                         *busPacket = cmdBuffer[i][j];
+                        // printf("pop packet %lx from domain %d @ cycle %ld, rank %d, bank %d\n", cmdBuffer[i][j]->physicalAddress, cmdBuffer[i][j]->srcId, currentClockCycle, cmdBuffer[i][j]->rank, cmdBuffer[i][j]->bank);
                         assert(isIssuable(*busPacket));
                         cmdBuffer[i].erase(cmdBuffer[i].begin() + j);
                         issue_time[i].erase(issue_time[i].begin() + j);
@@ -1343,6 +1423,8 @@ unsigned CommandQueue::getCurrentDomain()
 unsigned* CommandQueue::selectRanks(pair <unsigned, unsigned> * rankRequests, unsigned num_ranks)
 {
     static unsigned chosenRanks[3];
+    pair<unsigned, unsigned> *rankRequests_ = new pair<unsigned, unsigned>[NUM_RANKS];
+    for (size_t i=0;i<NUM_RANKS;i++) rankRequests_[i] = rankRequests[i];
     for (size_t i=0;i<3;i++) chosenRanks[i] = 0;
     // record the id the the ranks
     unsigned *id = new unsigned[num_ranks];
@@ -1354,21 +1436,21 @@ unsigned* CommandQueue::selectRanks(pair <unsigned, unsigned> * rankRequests, un
     for (size_t i=0;i<num_ranks;i++)
         for (size_t j=0;j<num_ranks-1-i;j++)
     {
-        if (rankRequests[j].first < rankRequests[j+1].first)
+        if (rankRequests_[j].first < rankRequests_[j+1].first)
         {
-            temp = rankRequests[j];
-            rankRequests[j] = rankRequests[j+1];
-            rankRequests[j+1] = temp;
+            temp = rankRequests_[j];
+            rankRequests_[j] = rankRequests_[j+1];
+            rankRequests_[j+1] = temp;
             // swap the ids
             id_temp = id[j];
             id[j] = id[j+1];
             id[j+1] = id_temp;
         }
-        else if ((rankRequests[j].first == rankRequests[j+1].first) && (rankRequests[j].second < rankRequests[j+1].second))
+        else if ((rankRequests_[j].first == rankRequests_[j+1].first) && (rankRequests_[j].second < rankRequests_[j+1].second))
         {
-            temp = rankRequests[j];
-            rankRequests[j] = rankRequests[j+1];
-            rankRequests[j+1] = temp;
+            temp = rankRequests_[j];
+            rankRequests_[j] = rankRequests_[j+1];
+            rankRequests_[j+1] = temp;
             // swap the ids
             id_temp = id[j];
             id[j] = id[j+1];

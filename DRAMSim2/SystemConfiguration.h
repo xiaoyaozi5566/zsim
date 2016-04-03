@@ -76,6 +76,7 @@ extern bool DEBUG_POWER;
 extern bool USE_LOW_POWER;
 extern bool VIS_FILE_OUTPUT;
 extern bool USE_RANDOM_ADDR;
+extern bool USE_BETTER_SCHEDULE;
 
 extern uint64_t TOTAL_STORAGE;
 extern unsigned NUM_BANKS;

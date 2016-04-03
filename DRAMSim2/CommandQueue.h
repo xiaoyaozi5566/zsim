@@ -105,6 +105,8 @@ protected:
     vector< vector<unsigned> > issue_time;
     vector<unsigned> previousRanks;
     unsigned previousBanks[3][3];
+    unsigned tempRanks[3];
+    pair<unsigned, unsigned> *rankRequests;
     unsigned finish_refresh;
     uint64_t wait_latency;
     uint64_t total_reqs;

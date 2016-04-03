@@ -16,6 +16,7 @@ ADDRESS_MAPPING_SCHEME=scheme2	;valid schemes 1-7; For multiple independent chan
 SCHEDULING_POLICY=sec_mem  ; bank_then_rank_round_robin or rank_then_bank_round_robin 
 QUEUING_STRUCTURE=per_rank_per_domain			;per_rank or per_rank_per_bank
 USE_RANDOM_ADDR=true                            ;use random address mapping
+USE_BETTER_SCHEDULE=false                        ;use better schedule
 
 ;for true/false, please use all lowercase
 DEBUG_TRANS_Q=false
