@@ -192,7 +192,9 @@ enum SchedulingPolicy
 	RankThenBankRoundRobin,
 	BankThenRankRoundRobin,
     SecMem,
-    FixedService
+    FixedService,
+    BankPar,
+    RankPar
 };
 
 

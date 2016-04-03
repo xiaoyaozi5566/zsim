@@ -417,7 +417,7 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 
 	// only chan is used from this set 
 	unsigned channelNumber,rank,bank,row,col;
-	addressMapping(addr, channelNumber, rank, bank, row, col); 
+	addressMapping(addr, num_pids, 0, channelNumber, rank, bank, row, col); 
 	if (channelNumber >= NUM_CHANS)
 	{
 		ERROR("Got channel index "<<channelNumber<<" but only "<<NUM_CHANS<<" exist"); 
@@ -463,7 +463,7 @@ bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr, uint3
 bool MultiChannelMemorySystem::willAcceptTransaction(uint64_t addr)
 {
 	unsigned chan, rank,bank,row,col; 
-	addressMapping(addr, chan, rank, bank, row, col);
+	addressMapping(addr, num_pids, 0, chan, rank, bank, row, col);
     // Yao: 0 should be the security domain ID here 
 	return channels[chan]->WillAcceptTransaction(0); 
 }

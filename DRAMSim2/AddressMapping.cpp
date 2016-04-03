@@ -34,7 +34,7 @@
 namespace DRAMSim
 {
 
-void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn)
+void addressMapping(uint64_t physicalAddress, unsigned num_pids, uint32_t srcId, unsigned &newTransactionChan, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn)
 {
 	uint64_t tempA, tempB;
 	unsigned transactionSize = TRANSACTION_SIZE;
@@ -116,6 +116,15 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
     
         // printf("physical Address %lx, random address %lx\n", physicalAddress, random_addr);
         physicalAddress = random_addr;
+    }
+    
+    if (schedulingPolicy == BankPar)
+    {
+        bankBitWidth = bankBitWidth - dramsim_log2(num_pids);
+    }
+    else if (schedulingPolicy == RankPar)
+    {
+        rankBitWidth = rankBitWidth - dramsim_log2(num_pids);
     }
 
 	//perform various address mapping schemes
@@ -339,6 +348,15 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 				<<" Bank="<<newTransactionBank<<" Row="<<newTransactionRow
 				<<" Col="<<newTransactionColumn<<"\n"); 
 	}
+    
+    if (schedulingPolicy == BankPar)
+    {
+        newTransactionBank = newTransactionBank + srcId*(NUM_BANKS/num_pids);
+    }
+    else if (schedulingPolicy == RankPar)
+    {
+        newTransactionRank = newTransactionRank + srcId*(NUM_RANKS/num_pids);
+    }
 
 }
 };

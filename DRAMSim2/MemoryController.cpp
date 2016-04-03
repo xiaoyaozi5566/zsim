@@ -520,7 +520,7 @@ void MemoryController::update()
     		unsigned newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
 
     		// pass these in as references so they get set by the addressMapping function
-    		addressMapping(transaction->address, newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn);
+    		addressMapping(transaction->address, num_pids, transaction->srcId, newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn);
 
     		//if we have room, break up the transaction into the appropriate commands
     		//and add them to the command queue
@@ -716,7 +716,7 @@ void MemoryController::update()
     				//		exit(0);
     				//	}
     				unsigned chan,rank,bank,row,col;
-    				addressMapping(returnTransaction[0]->address,chan,rank,bank,row,col);
+    				addressMapping(returnTransaction[0]->address, num_pids, returnTransaction[0]->srcId, chan,rank,bank,row,col);
     				insertHistogram(currentClockCycle-pendingReadTransactions[queue_index][i]->timeAdded,rank,bank);
     				//return latency
     				returnReadData(pendingReadTransactions[queue_index][i]);

@@ -674,6 +674,22 @@ void IniReader::InitEnumsFromStrings()
 			DEBUG("SCHEDULING: Fixed Service");
 		}
     }
+    else if (SCHEDULING_POLICY == "bank_partitioning")
+    {
+        schedulingPolicy = BankPar;
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("SCHEDULING: Bank Partitioning");
+		}
+    }
+    else if (SCHEDULING_POLICY == "rank_partitioning")
+    {
+        schedulingPolicy = RankPar;
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("SCHEDULING: Rank Partitioning");
+		}
+    }
 	else
 	{
 		cout << "WARNING: Unknown scheduling policy '"<<SCHEDULING_POLICY<<"'; valid options are 'rank_then_bank_round_robin' or 'bank_then_rank_round_robin'; defaulting to Bank Then Rank Round Robin" << endl;
