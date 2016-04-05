@@ -14,10 +14,12 @@ stderr_dir = zsim_home + "/stderr"
 techIni = "/home/yw438/zsim/DRAMSim2/ini/DDR3_micron_64M_8B_x4_sg15.ini"
 systemIni_sec = "/home/yw438/zsim/DRAMSim2/system.ini.sec"
 systemIni_sec2banks = "/home/yw438/zsim/DRAMSim2/system.ini.sec2banks"
+systemIni_secrand = "/home/yw438/zsim/DRAMSim2/system.ini.rand"
 systemIni_insec = "/home/yw438/zsim/DRAMSim2/system.ini.baseline"
 systemIni_fs = "/home/yw438/zsim/DRAMSim2/system.ini.fs"
 systemIni_bankpar = "/home/yw438/zsim/DRAMSim2/system.ini.bankpar"
 systemIni_rankpar = "/home/yw438/zsim/DRAMSim2/system.ini.rankpar"
+systemIni_smart = "/home/yw438/zsim/DRAMSim2/system.ini.smart"
 
 # remove astar due to bugs
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
@@ -205,7 +207,32 @@ multiprog_4 = [
     ['lbm', 'lbm', 'lbm', 'lbm'] 
 ]
 
-workloads = multiprog
+multiprog_2 = [
+    ['perlbench', 'perlbench'] ,
+    ['bzip2', 'bzip2'] ,
+    ['gcc', 'gcc'] ,
+    ['mcf', 'mcf'] ,
+    ['gobmk', 'gobmk'] ,
+    ['hmmer', 'hmmer'] ,
+    ['sjeng', 'sjeng'] ,
+    ['libquantum', 'libquantum'] ,
+    ['h264ref', 'h264ref'] ,
+    ['omnetpp', 'omnetpp'] ,
+    ['xalan', 'xalan'] ,
+    ['bwaves', 'bwaves'] ,
+    ['gamess', 'gamess'] ,
+    ['milc', 'milc'] ,
+    ['zeusmp', 'zeusmp'] ,
+    ['gromacs', 'gromacs'] ,
+    ['cactusADM', 'cactusADM'] ,
+    ['leslie3d', 'leslie3d'] ,
+    ['namd', 'namd'] ,
+    ['dealII', 'dealII'] ,
+    ['soplex', 'soplex'] ,
+    ['GemsFDTD', 'GemsFDTD'] ,
+    ['tonto', 'tonto'] ,
+    ['lbm', 'lbm']
+]
 
 if not os.path.exists(scriptgen_dir):
     os.makedirs(scriptgen_dir)
@@ -218,115 +245,8 @@ if not os.path.exists(stdout_dir):
 
 if not os.path.exists(stderr_dir):
     os.makedirs(stderr_dir)
-    
-# folder = sys.argv[1]
-#
-# if not os.path.exists(results_dir + "/" + folder):
-#     os.makedirs(results_dir + "/" + folder)
-#
-# if not os.path.exists(stdout_dir + "/" + folder):
-#     os.makedirs(stdout_dir + "/" + folder)
-#
-# if not os.path.exists(stderr_dir + "/" + folder):
-#     os.makedirs(stderr_dir + "/" + folder)
 
-def multiprogs():
-    for workload in workloads:
-        p0 = workload[0]
-        p1 = workload[1]
-        result_folder = results_dir + "/" + folder + "/" + p0 + "_" + p1
-        stdout_folder = stdout_dir + "/" + folder
-        stderr_folder = stderr_dir + "/" + folder
-        if not os.path.exists(result_folder):
-            os.makedirs(result_folder)
-        if not os.path.exists(stdout_folder):
-            os.makedirs(stdout_folder)
-        if not os.path.exists(stderr_folder):
-            os.makedirs(stderr_folder)
-        # create config file
-        filename = p0 + "_" + p1 + ".cfg"
-        config_file = open(scriptgen_dir + "/" + filename, "w")
-        config =  "sim = {\n"
-        config += "    phaseLength = 10000;\n"
-        config += "    statsPhaseInterval = 1;\n};\n\n"
-        config += "sys = {\n"
-        config += "    frequency = 2400;\n"
-        config += "    lineSize = 64;\n"
-        config += "    cores = {\n"
-        config += "        nehalem = {\n"
-        config += "            type = \"OOO\";\n"
-        config += "            cores = 2;\n"
-        config += "            icache = \"l1\";\n"
-        config += "            dcache = \"l1\";\n"
-        config += "        };\n"
-        config += "    };\n\n"
-        config += "    caches = {\n"
-        config += "        l1 = {\n"
-        config += "            size = 32768;\n"
-        config += "            caches = 4;\n"
-        config += "            parent = \"l2\";\n"
-        config += "        };\n\n"
-        config += "        l2 = {\n"
-        config += "            size = 1048576;\n"
-        config += "            caches = 1;\n"
-        config += "            array = {\n"
-        config += "                ways = 16;\n"
-        config += "                hash = \"None\";\n"
-        config += "            };\n"
-        config += "            parent = \"mem\";\n"
-        config += "        };\n\n"
-        config += "    };\n"
-        config += "    mem = {\n"
-        config += "        controllers = 1;\n"
-        config += "        type = \"DDR\"\n"
-        config += "    };\n"
-        config += "};\n\n"
-        config += "process0 = {\n"
-        config += "    mask = \"0\";\n"
-        config += "    command = \"" + specinvoke[p0] + "\";\n"
-        if (p0 in redirect_input.keys()):
-            config += "    input = \"" + redirect_input[p0] + "\";\n"
-        config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"2000000 1000000\";\n"
-        config += "};\n\n"
-        config += "process1 = {\n"
-        config += "    mask = \"1\";\n"
-        config += "    command = \"" + specinvoke[p1] + "\";\n"
-        if (p1 in redirect_input.keys()):
-            config += "    input = \"" + redirect_input[p1] + "\";\n"
-        config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"2000000 1000000\";\n"
-        config += "};\n\n"
-        
-        config_file.write("%s\n" % config)
-        config_file.close()
-        # create run script
-        filename = p0 + "_" + p1 + ".sh"
-        bash_file = open(scriptgen_dir + "/" + filename, "w")
-        command = "#!/bin/bash\n\n"
-        command += zsim_home + "/build/opt/zsim " + scriptgen_dir + "/" + p0 + "_" + p1 + ".cfg " + result_folder + "\n"
-        os.system("chmod +x " + scriptgen_dir + "/" + filename)
-        
-        bash_file.write("%s\n" % command)
-        bash_file.close()
-        # create submit script
-        filename = p0 + "_" + p1 + ".sub"
-        submit_file = open(scriptgen_dir + "/" + filename, "w")
-        env = "Universe = Vanilla\n"
-        env += "getenv = True\n"
-        env += "Executable = " + scriptgen_dir + "/" + p0 + "_" + p1 + ".sh\n"
-        env += "Output = " + stdout_folder + "/" + p0 + "_" + p1 + ".out\n"
-        env += "Error = " + stderr_folder + "/" + p0 + "_" + p1 + ".err\n"
-        env += "Log = " + stdout_folder + "/" + p0 + "_" + p1 + ".log\n"
-        env += "Queue\n"
-        
-        submit_file.write("%s\n" % env)
-        submit_file.close()
-        
-        os.system("condor_submit " + scriptgen_dir + "/" + filename)
-
-def multiprogs_DRAMSim2_8():
-    workloads = multiprog_8
+def multiprogs_DRAMSim2():
     for workload in workloads:
         name = ""
         for bench in workload:
@@ -520,183 +440,229 @@ def singleprogs():
         
         os.system("condor_submit " + scriptgen_dir + "/" + filename)
         
-def multiprogs_DRAMSim2():
-    for workload in workloads:
-        p0 = workload[0]
-        p1 = workload[1]
-        result_folder = results_dir + "/" + folder + "/" + p0 + "_" + p1
-        stdout_folder = stdout_dir + "/" + folder
-        stderr_folder = stderr_dir + "/" + folder
-        if not os.path.exists(result_folder):
-            os.makedirs(result_folder)
-        if not os.path.exists(stdout_folder):
-            os.makedirs(stdout_folder)
-        if not os.path.exists(stderr_folder):
-            os.makedirs(stderr_folder)
-        # create config file
-        filename = p0 + "_" + p1 + ".cfg"
-        config_file = open(scriptgen_dir + "/" + filename, "w")
-        config =  "sim = {\n"
-        config += "    phaseLength = 10000;\n"
-        config += "    maxProcEventualDumps = 2;\n"
-        config += "    statsPhaseInterval = 1;\n};\n\n"
-        config += "sys = {\n"
-        config += "    frequency = 2400;\n"
-        config += "    lineSize = 64;\n"
-        config += "    cores = {\n"
-        config += "        nehalem = {\n"
-        config += "            type = \"OOO\";\n"
-        config += "            cores = 2;\n"
-        config += "            icache = \"l1\";\n"
-        config += "            dcache = \"l1\";\n"
-        config += "        };\n"
-        config += "    };\n\n"
-        config += "    caches = {\n"
-        config += "        l1 = {\n"
-        config += "            size = 32768;\n"
-        config += "            caches = 4;\n"
-        config += "            parent = \"l2\";\n"
-        config += "        };\n\n"
-        config += "        l2 = {\n"
-        config += "            size = 1048576;\n"
-        config += "            caches = 1;\n"
-        config += "            array = {\n"
-        config += "                ways = 16;\n"
-        config += "                hash = \"None\";\n"
-        config += "            };\n"
-        config += "            repl = {\n"
-        config += "                type = \"WayPart\";\n"
-        config += "            };\n"
-        config += "            parent = \"mem\";\n"
-        config += "        };\n\n"
-        config += "    };\n"
-        config += "    mem = {\n"
-        config += "        controllers = 1;\n"
-        config += "        latency = 10;\n"
-        config += "        type = \"DRAMSim\";\n"
-        config += "        techIni = \"" + techIni + "\";\n"
-        config += "        systemIni = \"" + systemIni + "\";\n"
-        config += "        outputDir = \"" + results_dir + "/" + folder + "\";\n"
-        config += "        traceName = \"" + p0 + "_" + p1 + "\";\n"
-        config += "    };\n"
-        config += "};\n\n"
-        config += "process0 = {\n"
-        config += "    mask = \"0\";\n"
-        config += "    command = \"" + specinvoke[p0] + "\";\n"
-        if (p0 in redirect_input.keys()):
-            config += "    input = \"" + redirect_input[p0] + "\";\n"
-        config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"2000000 100000000\";\n"
-        config += "    dumpInstrs = 1000000L;\n"
-        config += "};\n\n"
-        config += "process1 = {\n"
-        config += "    mask = \"1\";\n"
-        config += "    command = \"" + specinvoke[p1] + "\";\n"
-        if (p1 in redirect_input.keys()):
-            config += "    input = \"" + redirect_input[p1] + "\";\n"
-        config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"2000000 100000000\";\n"
-        config += "    dumpInstrs = 1000000L;\n"
-        config += "};\n\n"
-        
-        config_file.write("%s\n" % config)
-        config_file.close()
-        # create run script
-        filename = p0 + "_" + p1 + ".sh"
-        bash_file = open(scriptgen_dir + "/" + filename, "w")
-        command = "#!/bin/bash\n\n"
-        command += zsim_home + "/build/opt/zsim " + scriptgen_dir + "/" + p0 + "_" + p1 + ".cfg " + result_folder + "\n"
-        os.system("chmod +x " + scriptgen_dir + "/" + filename)
-        
-        bash_file.write("%s\n" % command)
-        bash_file.close()
-        # create submit script
-        filename = p0 + "_" + p1 + ".sub"
-        submit_file = open(scriptgen_dir + "/" + filename, "w")
-        env = "Universe = Vanilla\n"
-        env += "getenv = True\n"
-        env += "Executable = " + scriptgen_dir + "/" + p0 + "_" + p1 + ".sh\n"
-        env += "Output = " + stdout_folder + "/" + p0 + "_" + p1 + ".out\n"
-        env += "Error = " + stderr_folder + "/" + p0 + "_" + p1 + ".err\n"
-        env += "Log = " + stdout_folder + "/" + p0 + "_" + p1 + ".log\n"
-        env += "Queue\n"
-        
-        submit_file.write("%s\n" % env)
-        submit_file.close()
-        
-        os.system("condor_submit " + scriptgen_dir + "/" + filename)
-        time.sleep(5)
-        
 # call the function        
-# multiprogs()
-# systemIni = systemIni_fs
-# multiprogs_DRAMSim2()
-# multiprogs_DRAMSim2_8()
-# folder = "single_prog_1B_1MB"
-# systemIni = systemIni_insec
-# singleprogs()
-#
-# # baseline scheme
-# folder = "insec_8_1MB"
-#
-# if not os.path.exists(results_dir + "/" + folder):
-#     os.makedirs(results_dir + "/" + folder)
-#
-# if not os.path.exists(stdout_dir + "/" + folder):
-#     os.makedirs(stdout_dir + "/" + folder)
-#
-# if not os.path.exists(stderr_dir + "/" + folder):
-#     os.makedirs(stderr_dir + "/" + folder)
-#
-# systemIni = systemIni_insec
-# multiprogs_DRAMSim2_8()
-#
-# # SecMem
-# folder = "sec_8_1MB"
-#
-# if not os.path.exists(results_dir + "/" + folder):
-#     os.makedirs(results_dir + "/" + folder)
-#
-# if not os.path.exists(stdout_dir + "/" + folder):
-#     os.makedirs(stdout_dir + "/" + folder)
-#
-# if not os.path.exists(stderr_dir + "/" + folder):
-#     os.makedirs(stderr_dir + "/" + folder)
-#
-# systemIni = systemIni_sec
-# multiprogs_DRAMSim2_8()
-#
-# folder = "sec_8_1MB_2banks"
-#
-# if not os.path.exists(results_dir + "/" + folder):
-#     os.makedirs(results_dir + "/" + folder)
-#
-# if not os.path.exists(stdout_dir + "/" + folder):
-#     os.makedirs(stdout_dir + "/" + folder)
-#
-# if not os.path.exists(stderr_dir + "/" + folder):
-#     os.makedirs(stderr_dir + "/" + folder)
-#
-# systemIni = systemIni_sec2banks
-# multiprogs_DRAMSim2_8()
-#
-# # FS
-# folder = "fs_8_1MB"
-#
-# if not os.path.exists(results_dir + "/" + folder):
-#     os.makedirs(results_dir + "/" + folder)
-#
-# if not os.path.exists(stdout_dir + "/" + folder):
-#     os.makedirs(stdout_dir + "/" + folder)
-#
-# if not os.path.exists(stderr_dir + "/" + folder):
-#     os.makedirs(stderr_dir + "/" + folder)
-#
-# systemIni = systemIni_fs
-# multiprogs_DRAMSim2_8()
+folder = "single_prog"
+systemIni = systemIni_insec
+singleprogs()
+
+# Two programs
+workloads = multiprog_2
+# baseline scheme
+folder = "insec_2"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_insec
+multiprogs_DRAMSim2()
+
+# SecMem
+folder = "sec_2"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_sec2banks
+multiprogs_DRAMSim2()
+
+# FS
+folder = "fs_2"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_fs
+multiprogs_DRAMSim2()
+
+# smart scheduling
+folder = "smart_2"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_smart
+multiprogs_DRAMSim2()
+
+# Four programs
+workloads = multiprog_4
+# baseline scheme
+folder = "insec_4"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_insec
+multiprogs_DRAMSim2()
+
+# SecMem
+folder = "sec_4"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_sec2banks
+multiprogs_DRAMSim2()
+
+# FS
+folder = "fs_4"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_fs
+multiprogs_DRAMSim2()
+
+# smart scheduling
+folder = "smart_4"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_smart
+multiprogs_DRAMSim2()
+
+# Eight programs
+workloads = multiprog_8
+# baseline scheme
+folder = "insec_8"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_insec
+multiprogs_DRAMSim2()
+
+# SecMem
+folder = "sec_8"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_sec2banks
+multiprogs_DRAMSim2()
+
+# FS
+folder = "fs_8"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_fs
+multiprogs_DRAMSim2()
+
+# smart scheduling
+folder = "smart_8"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_smart
+multiprogs_DRAMSim2()
+
+# Random address mapping
+folder = "secrand_8"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_secrand
+multiprogs_DRAMSim2()
+
+# Interleaving three banks in one turn
+folder = "sec3banks_8"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_sec
+multiprogs_DRAMSim2()
 
 # bank partitioning
-folder = "bankpar"
+folder = "bankpar_8"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)
@@ -708,10 +674,10 @@ if not os.path.exists(stderr_dir + "/" + folder):
     os.makedirs(stderr_dir + "/" + folder)
 
 systemIni = systemIni_bankpar
-multiprogs_DRAMSim2_8()
+multiprogs_DRAMSim2()
 
 # rank partitioning
-folder = "rankpar"
+folder = "rankpar_8"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)
@@ -723,4 +689,4 @@ if not os.path.exists(stderr_dir + "/" + folder):
     os.makedirs(stderr_dir + "/" + folder)
 
 systemIni = systemIni_rankpar
-multiprogs_DRAMSim2_8()
+multiprogs_DRAMSim2()
