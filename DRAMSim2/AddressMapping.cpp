@@ -108,12 +108,13 @@ void addressMapping(uint64_t physicalAddress, unsigned num_pids, uint32_t srcId,
         AES_encrypt(key, ciphertext, &expanded);
 
         random_addr = 0;
-        for (size_t i=0;i<8;i++)
+        for (size_t i=0;i<7;i++)
         {
             random_addr += ciphertext[8+i];
             random_addr = random_addr*256;
         }
-    
+        random_addr += ciphertext[15];
+
         // printf("physical Address %lx, random address %lx\n", physicalAddress, random_addr);
         physicalAddress = random_addr;
     }
