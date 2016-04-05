@@ -501,11 +501,11 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 issue_time[order].push_back(activate_time);
                                 issue_time[order].push_back(rdwr_time);
                                 foundIssuable = true;
-                                queue.erase(queue.begin()+j+1);
-                                queue.erase(queue.begin()+j);
                                 tempRanks[order] = i;
                                 rankRequests[i].first = 1;
                                 previousBanks[order][NUM_DIFF_BANKS-1] = queue[j]->bank;
+                                queue.erase(queue.begin()+j+1);
+                                queue.erase(queue.begin()+j);
                                 break;                                
                             }
                         }
