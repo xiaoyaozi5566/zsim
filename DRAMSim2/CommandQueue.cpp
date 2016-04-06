@@ -351,7 +351,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             }
                         }
                     }
-                }
+                }      
                 
                 // printf("enter scheduling cycle 2\n");
                 // Add bus packet to command buffers to be issued.
@@ -464,32 +464,21 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         {
                             continue;
                         }
-                        bool canIssue = true;
+                        vector<BusPacket *> &queue = getCommandQueue(i, getCurrentDomain());
+                        if (queue.size()==0) continue;
+                        bool canIssue = false;
                         bool foundIssuable = false;
+                        unsigned order = 0;
                         for (size_t j=0;j<3;j++)
                         {
-                            if (i == tempRanks[j] && rankRequests[tempRanks[j]].first != 0)
-                                canIssue = false;
-                        }
-                        if (!canIssue) continue;
-                        unsigned order = 0;
-                        for (size_t k=0;k<previousRanks.size();k++)
-                        {
-                            if (i == previousRanks[k]) 
+                            if (i == tempRanks[j] && rankRequests[tempRanks[j]].first == 0)
                             {
-                                order = k;
+                                canIssue = true;
+                                order = j;
                                 break;
-                            }
+                            } 
                         }
-                        for (size_t k=order;k<3;k++)
-                        {
-                            if (rankRequests[tempRanks[k]].first == 0)
-                            {
-                                order = k;
-                                break;
-                            }
-                        }                        
-                        vector<BusPacket *> &queue = getCommandQueue(i, getCurrentDomain());
+                        if (!canIssue) continue;                   
                         for (size_t j=0;j<queue.size();j++)
                         {
                             if (queue[j]->busPacketType==ACTIVATE)
@@ -501,7 +490,6 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 issue_time[order].push_back(activate_time);
                                 issue_time[order].push_back(rdwr_time);
                                 foundIssuable = true;
-                                tempRanks[order] = i;
                                 rankRequests[i].first = 1;
                                 previousBanks[order][NUM_DIFF_BANKS-1] = queue[j]->bank;
                                 queue.erase(queue.begin()+j+1);
@@ -1493,11 +1481,12 @@ unsigned* CommandQueue::selectRanks(pair <unsigned, unsigned> * rankRequests, un
 unsigned CommandQueue::getRefreshRank()
 {
     unsigned refresh_interval = (REFRESH_PERIOD/tCK)/NUM_RANKS;
-    unsigned in_refresh = (currentClockCycle + WORST_CASE) % refresh_interval;
+    unsigned turn_start = currentClockCycle - (currentClockCycle%turn_length);
+    unsigned in_refresh = (turn_start + WORST_CASE) % refresh_interval;
     // will be in refresh period of some rank
     if (in_refresh <= tRFC)
     {
-        unsigned rank = (((currentClockCycle + WORST_CASE) / refresh_interval) % NUM_RANKS + NUM_RANKS - 1) % NUM_RANKS;
+        unsigned rank = (((turn_start + WORST_CASE) / refresh_interval) % NUM_RANKS + NUM_RANKS - 1) % NUM_RANKS;
         return rank;
     }
     else
