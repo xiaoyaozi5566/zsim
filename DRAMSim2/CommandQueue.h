@@ -48,6 +48,7 @@
 #include "SimulatorObject.h"
 #include <set>
 #include <utility>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -104,6 +105,7 @@ protected:
     vector< vector<BusPacket *> > cmdBuffer;
     vector< vector<unsigned> > issue_time;
     vector<unsigned> previousRanks;
+    vector< pair<unsigned, unsigned> > issuableRankBanks;
     unsigned previousBanks[3][3];
     unsigned tempRanks[3];
     pair<unsigned, unsigned> *rankRequests;

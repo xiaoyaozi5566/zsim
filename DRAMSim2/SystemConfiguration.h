@@ -195,7 +195,8 @@ enum SchedulingPolicy
     SecMem,
     FixedService,
     BankPar,
-    RankPar
+    RankPar,
+    SideChannel
 };
 
 

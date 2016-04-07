@@ -773,6 +773,107 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 refreshRank = -1;
             if (!foundIssuable) return false;
         }
+        else if (schedulingPolicy == SideChannel)
+        {
+            unsigned rel_time = currentClockCycle % BTR_DELAY;
+            unsigned current_domain = (currentClockCycle/BTR_DELAY) % num_pids;
+            if (rel_time == 0)
+            {
+                bool foundIssuable = false;
+                for (size_t i=0;i<NUM_RANKS;i++)
+                {
+                    if (getRefreshRank() == i || refreshRank == i) continue;
+                    vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
+                    for (size_t j=0; j<queue.size();j++)
+                    {
+                        if (queue[j]->busPacketType==ACTIVATE && isIssuable(queue[j]))
+                        {
+                            unsigned activate_time = currentClockCycle;
+                            unsigned rdwr_time = activate_time + tRCD;
+                            cmdBuffer[0].push_back(queue[j]);
+                            cmdBuffer[0].push_back(queue[j+1]);
+                            queue.erase(queue.begin() + j + 1);
+                            queue.erase(queue.begin() + j);
+                            issue_time[0].push_back(activate_time);
+                            issue_time[0].push_back(rdwr_time);
+                            foundIssuable = true;
+                        }
+                        if (foundIssuable) break;
+                    }
+                    if (foundIssuable) break;
+                }
+                // create a fake reqeust
+                if (!foundIssuable)
+                {
+        			issuableRankBanks.clear();
+                    for (size_t i=0; i<NUM_RANKS; i++)
+                    {
+                        if (getRefreshRank() == i || refreshRank == i) continue;
+                        for (size_t j=0; j<NUM_BANKS; j++)
+                        {
+                            BusPacket *ACTcommand = new BusPacket(ACTIVATE, 0, 0, 0, i, j, 1000, 0, dramsim_log);
+                            if (isIssuable(ACTcommand))
+                            {
+                                issuableRankBanks.push_back(make_pair(i, j));
+                            }
+                        }
+                    }
+                    unsigned rankBank = rand() % issuableRankBanks.size();
+                    unsigned r = issuableRankBanks[rankBank].first;
+                    unsigned b = issuableRankBanks[rankBank].second;
+                    unsigned activate_time = currentClockCycle;
+                    unsigned rdwr_time = activate_time + tRCD;
+                    BusPacket *ACTcommand = new BusPacket(ACTIVATE, 0, 0, 0, r, b, 1000, 0, dramsim_log);
+                    BusPacket *command = new BusPacket(READ_P, 0, 0, 0, r, b, 1000, 0, dramsim_log);
+                    cmdBuffer[0].push_back(ACTcommand);
+                    cmdBuffer[0].push_back(command);
+                    issue_time[0].push_back(activate_time);
+                    issue_time[0].push_back(rdwr_time);
+                }
+            }
+            bool foundIssuable = false;
+            for (size_t i=0;i<issue_time[0].size();i++)
+            {
+                if (issue_time[0][i] < currentClockCycle)
+                    printf("issue time smaller than current clock cycle!\n");
+                if (issue_time[0][i] == currentClockCycle)
+                {
+                    // printf("pop packet %lx from domain %d @ cycle %ld, rank %d, bank %d" cmdBuffer[0][i]->physicalAddress, cmdBuffer[0][i]->srcId, currentClockCycle, cmdBuffer[0][i]->rank, cmdBuffer[0][i]->bank);
+                    *busPacket = cmdBuffer[0][i];
+                    assert(isIssuable(*busPacket));
+                    cmdBuffer[0].erase(cmdBuffer[0].begin() + i);
+                    issue_time[0].erase(issue_time[0].begin() + i);
+                    foundIssuable = true;
+                    break;
+                }
+                if (foundIssuable) break;
+            }
+            // Check to see if we can issue a pending refresh command
+            if (!foundIssuable && refreshWaiting)
+            {
+                bool foundActiveOrTooEarly = false;
+                for (size_t b=0;b<NUM_BANKS;b++)
+                {
+                    if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
+                    {
+                        foundActiveOrTooEarly = true;
+                        break;
+                    }
+                }
+    			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
+    			{
+    				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);  				
+    				refreshWaiting = false;
+                    foundIssuable = true;
+                    finish_refresh = currentClockCycle + tRFC;
+                    // printf("issuing refresh to rank %d\n", refreshRank);
+    			}
+            }
+            // Mark the end of refresh, so the refreshing rank can issue requests again
+            if (currentClockCycle == finish_refresh)
+                refreshRank = -1;
+            if (!foundIssuable) return false;
+        }
         else
         {
             bool sendingREF = false;
@@ -1376,6 +1477,19 @@ void CommandQueue::nextRankAndBank(unsigned &rank, unsigned &bank)
 		}
     }
     else if (schedulingPolicy == BankPar || schedulingPolicy == RankPar)
+    {
+		bank++;
+		if (bank == NUM_BANKS)
+		{
+			bank = 0;
+			rank++;
+			if (rank == NUM_RANKS)
+			{
+				rank = 0;
+			}
+		}
+    }
+    else if (schedulingPolicy == SideChannel)
     {
 		bank++;
 		if (bank == NUM_BANKS)

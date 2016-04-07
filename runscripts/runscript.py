@@ -20,6 +20,7 @@ systemIni_fs = "/home/yw438/zsim/DRAMSim2/system.ini.fs"
 systemIni_bankpar = "/home/yw438/zsim/DRAMSim2/system.ini.bankpar"
 systemIni_rankpar = "/home/yw438/zsim/DRAMSim2/system.ini.rankpar"
 systemIni_smart = "/home/yw438/zsim/DRAMSim2/system.ini.smart"
+systemIni_relax = "/home/yw438/zsim/DRAMSim2/system.ini.relax"
 
 # remove astar due to bugs
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
@@ -689,4 +690,19 @@ if not os.path.exists(stderr_dir + "/" + folder):
     os.makedirs(stderr_dir + "/" + folder)
 
 systemIni = systemIni_rankpar
+multiprogs_DRAMSim2()
+
+# side channel protection
+folder = "relax_8"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_relax
 multiprogs_DRAMSim2()
