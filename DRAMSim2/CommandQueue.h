@@ -106,6 +106,7 @@ protected:
     vector< vector<unsigned> > issue_time;
     vector<unsigned> previousRanks;
     vector< pair<unsigned, unsigned> > issuableRankBanks;
+    vector< pair<unsigned, unsigned> > previousRankBanks;
     unsigned previousBanks[3][3];
     unsigned tempRanks[3];
     pair<unsigned, unsigned> *rankRequests;

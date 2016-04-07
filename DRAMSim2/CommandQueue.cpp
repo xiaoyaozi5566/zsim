@@ -124,6 +124,11 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
             previousBanks[i][j] = 1000;
     }
     
+    for (size_t i=0;i<8;i++)
+    {
+        previousRankBanks.push_back(make_pair(0,0));
+    }
+    
     rankRequests = new pair<unsigned, unsigned>[NUM_RANKS];
         
         
@@ -782,20 +787,35 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 bool foundIssuable = false;
                 for (size_t i=0;i<NUM_RANKS;i++)
                 {
+                    // Cannot issue request to refreshing rank
                     if (getRefreshRank() == i || refreshRank == i) continue;
+                    // Cannot issue the same rank as previous ranks
+                    if (i == previousRankBanks[6].first || i == previousRankBanks[7].first) continue;
                     vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
                     for (size_t j=0; j<queue.size();j++)
                     {
-                        if (queue[j]->busPacketType==ACTIVATE && isIssuable(queue[j]))
+                        if (queue[j]->busPacketType==ACTIVATE)
                         {
+                            bool canIssue = true;
+                            for (size_t k=0;k<6;k++)
+                            {
+                                if (i == previousRankBanks[k].first && queue[j]->bank == previousRankBanks[k].second)
+                                {
+                                    canIssue = false;
+                                    break;
+                                }
+                            }
+                            if (!canIssue) continue;
                             unsigned activate_time = currentClockCycle;
                             unsigned rdwr_time = activate_time + tRCD;
                             cmdBuffer[0].push_back(queue[j]);
-                            cmdBuffer[0].push_back(queue[j+1]);
-                            queue.erase(queue.begin() + j + 1);
-                            queue.erase(queue.begin() + j);
+                            cmdBuffer[0].push_back(queue[j+1]);                        
                             issue_time[0].push_back(activate_time);
                             issue_time[0].push_back(rdwr_time);
+                            previousRankBanks.erase(previousRankBanks.begin());
+                            previousRankBanks.push_back(make_pair(i, queue[j]->bank));
+                            queue.erase(queue.begin() + j + 1);
+                            queue.erase(queue.begin() + j);
                             foundIssuable = true;
                         }
                         if (foundIssuable) break;
@@ -809,26 +829,27 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     for (size_t i=0; i<NUM_RANKS; i++)
                     {
                         if (getRefreshRank() == i || refreshRank == i) continue;
+                        if (i == previousRankBanks[6].first || i == previousRankBanks[7].first) continue;
                         for (size_t j=0; j<NUM_BANKS; j++)
                         {
-                            BusPacket *ACTcommand = new BusPacket(ACTIVATE, 0, 0, 0, i, j, 1000, 0, dramsim_log);
-                            if (isIssuable(ACTcommand))
+                            bool canIssue = true;
+                            for (size_t k=0;k<6;k++)
                             {
-                                issuableRankBanks.push_back(make_pair(i, j));
+                                if (i == previousRankBanks[k].first && j == previousRankBanks[k].second)
+                                {
+                                    canIssue = false;
+                                    break;
+                                }
                             }
+                            if (!canIssue) continue;
+                            issuableRankBanks.push_back(make_pair(i,j));
                         }
                     }
                     unsigned rankBank = rand() % issuableRankBanks.size();
                     unsigned r = issuableRankBanks[rankBank].first;
                     unsigned b = issuableRankBanks[rankBank].second;
-                    unsigned activate_time = currentClockCycle;
-                    unsigned rdwr_time = activate_time + tRCD;
-                    BusPacket *ACTcommand = new BusPacket(ACTIVATE, 0, 0, 0, r, b, 1000, 0, dramsim_log);
-                    BusPacket *command = new BusPacket(READ_P, 0, 0, 0, r, b, 1000, 0, dramsim_log);
-                    cmdBuffer[0].push_back(ACTcommand);
-                    cmdBuffer[0].push_back(command);
-                    issue_time[0].push_back(activate_time);
-                    issue_time[0].push_back(rdwr_time);
+                    previousRankBanks.erase(previousRankBanks.begin());
+                    previousRankBanks.push_back(make_pair(r, b));
                 }
             }
             bool foundIssuable = false;
@@ -838,8 +859,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     printf("issue time smaller than current clock cycle!\n");
                 if (issue_time[0][i] == currentClockCycle)
                 {
-                    // printf("pop packet %lx from domain %d @ cycle %ld, rank %d, bank %d" cmdBuffer[0][i]->physicalAddress, cmdBuffer[0][i]->srcId, currentClockCycle, cmdBuffer[0][i]->rank, cmdBuffer[0][i]->bank);
                     *busPacket = cmdBuffer[0][i];
+                    // printf("pop packet %lx from domain %d @ cycle %ld, rank %d, bank %d\n", cmdBuffer[0][i]->physicalAddress, cmdBuffer[0][i]->srcId, currentClockCycle, cmdBuffer[0][i]->rank, cmdBuffer[0][i]->bank);
                     assert(isIssuable(*busPacket));
                     cmdBuffer[0].erase(cmdBuffer[0].begin() + i);
                     issue_time[0].erase(issue_time[0].begin() + i);
@@ -1331,8 +1352,8 @@ vector<BusPacket *> &CommandQueue::getCommandQueue(unsigned rank, unsigned bank_
 
 //checks if busPacket is allowed to be issued
 bool CommandQueue::isIssuable(BusPacket *busPacket)
-{
-	switch (busPacket->busPacketType)
+{   
+    switch (busPacket->busPacketType)
 	{
 	case REFRESH:
 
@@ -1355,7 +1376,7 @@ bool CommandQueue::isIssuable(BusPacket *busPacket)
 		if (bankStates[busPacket->rank][busPacket->bank].currentBankState == RowActive &&
 		        currentClockCycle >= bankStates[busPacket->rank][busPacket->bank].nextWrite &&
 		        busPacket->row == bankStates[busPacket->rank][busPacket->bank].openRowAddress &&
-		        rowAccessCounters[busPacket->rank][busPacket->bank] < TOTAL_ROW_ACCESSES)
+                rowAccessCounters[busPacket->rank][busPacket->bank] < TOTAL_ROW_ACCESSES)
 		{
 			return true;
 		}
@@ -1369,7 +1390,7 @@ bool CommandQueue::isIssuable(BusPacket *busPacket)
 		if (bankStates[busPacket->rank][busPacket->bank].currentBankState == RowActive &&
 		        currentClockCycle >= bankStates[busPacket->rank][busPacket->bank].nextRead &&
 		        busPacket->row == bankStates[busPacket->rank][busPacket->bank].openRowAddress &&
-		        rowAccessCounters[busPacket->rank][busPacket->bank] < TOTAL_ROW_ACCESSES)
+                rowAccessCounters[busPacket->rank][busPacket->bank] < TOTAL_ROW_ACCESSES)
 		{
 			return true;
 		}

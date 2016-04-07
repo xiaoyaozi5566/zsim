@@ -697,13 +697,7 @@ void MemoryController::update()
         unsigned srcId = returnTransaction[0]->srcId;
         unsigned cur_delay = (currentClockCycle - srcId*TURN_LENGTH)%(num_pids*TURN_LENGTH);
         if (schedulingPolicy == SecMem && cur_delay <= RETURN_DELAY) ready = false;
-        // fake request
-        if (srcId == 1000)
-        {
-    		delete returnTransaction[0];
-    		returnTransaction.erase(returnTransaction.begin());
-        }
-        else if (ready)
+        if (ready)
         {
             bool foundMatch=false;
             unsigned queue_index;
