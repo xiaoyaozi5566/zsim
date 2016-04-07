@@ -129,6 +129,15 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
         previousRankBanks.push_back(make_pair(0,0));
     }
     
+    for (size_t i=0;i<num_pids;i++)
+    {
+        vector<unsigned> perDomainQueue;
+        for (size_t j=0;j<NUM_RANKS;j++)
+            perDomainQueue.push_back(0);
+        rankStats.push_back(perDomainQueue);
+        perDomainTotal.push_back(0);
+    }
+    
     rankRequests = new pair<unsigned, unsigned>[NUM_RANKS];
         
         
@@ -179,6 +188,8 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
     if (newBusPacket->busPacketType == ACTIVATE)
     {
         total_reqs++;
+        perDomainTotal[srcId]++;
+        rankStats[srcId][rank]++;
         unsigned period = turn_length*num_pids;
         unsigned period_start = (currentClockCycle/period)*period;
         unsigned next_turn;
@@ -191,8 +202,21 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
         {
             printf("total_reqs: %ld, wait_latency: %ld\n", total_reqs, wait_latency);
             printf("num_reqs: %f, num_issued: %f, num_same_bank: %f\n", num_reqs*1.0/num_turns, num_issued*1.0/num_turns, num_same_bank*1.0/num_turns);
-            printf("queueing_delay: %f\n", queuing_delay*1.0/num_issued);
-        }      
+            printf("queueing_delay: %f\n", queuing_delay*1.0/num_issued);           
+        }
+        if (schedulingPolicy == SideChannel)
+        {          
+            if (perDomainTotal[srcId] % 1000 == 0)
+            {
+                printf("Domain %d: ", srcId);
+                for (size_t j=0;j<NUM_RANKS;j++)
+                {
+                    printf("%4d ", rankStats[srcId][j]);
+                    rankStats[srcId][j] = 0;
+                }
+                printf("Yao\n");
+            }                
+        }         
     }
     
     // printf("enqueue packet %lx from domain %d @ cycle %ld, rank %d, bank %d\n", newBusPacket->physicalAddress, newBusPacket->srcId, currentClockCycle, newBusPacket->rank, newBusPacket->bank);
