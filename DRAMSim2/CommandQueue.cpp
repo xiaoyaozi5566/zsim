@@ -380,7 +380,9 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             }
                         }
                     }
-                }      
+                }
+                
+                // for (size_t i=0;i<3;i++) printf("tempRanks[%ld]=%d\n", i, tempRanks[i]);
                 
                 // printf("enter scheduling cycle 2\n");
                 // Add bus packet to command buffers to be issued.
@@ -1606,34 +1608,47 @@ unsigned* CommandQueue::selectRanks(pair <unsigned, unsigned> * rankRequests, un
     }
     
     //Yao: there must be at least four ranks
-    unsigned firstPos = 0;
-    unsigned secondPos = 0;
-    for (size_t i=0;i<num_ranks;i++)
+    unsigned lastPos = 0;
+    for (size_t i=0;i<3;i++)
     {
-        if (id[i] != getRefreshRank() && id[i] != refreshRank)
+        if (rankRequests_[i].first != 0) 
         {
-            chosenRanks[0] = id[i];
-            firstPos = i;
-            break;
+            chosenRanks[i] = id[i];
+            lastPos = i+1;
         }
+        else
+            break;
     }
-    for (size_t i=firstPos+1;i<num_ranks;i++)
+
+    unsigned* r = new unsigned[NUM_RANKS-lastPos];
+    for (size_t i=0;i<NUM_RANKS-lastPos;i++)
     {
-        if (id[i] != getRefreshRank() && id[i] != refreshRank)
-        {
-            chosenRanks[1] = id[i];
-            secondPos = i;
-            break;
-        }
+        r[i]=i;
     }
-    for (size_t i=secondPos+1;i<num_ranks;i++)
+    for (int i=NUM_RANKS-lastPos-1; i>=0;i--){
+        //generate a random number [0, n-1]
+        unsigned j = rand() % (i+1);
+
+        //swap the last element with element at random index
+        unsigned t = r[i];
+        r[i] = r[j];
+        r[j] = t;
+    }
+
+    unsigned curPos = 0;    
+    for (size_t i=lastPos;i<3;i++)
     {
-        if (id[i] != getRefreshRank() && id[i] != refreshRank)
+        for (size_t j=curPos;j<NUM_RANKS-lastPos;j++)
         {
-            chosenRanks[2] = id[i];
-            break;
-        }
+            if (id[lastPos+r[j]] != getRefreshRank() && id[lastPos+r[j]] != refreshRank)
+            {
+                chosenRanks[i] = id[lastPos+r[j]];
+                curPos = j+1;
+                break;
+            }
+        }       
     }
+
     return chosenRanks;
 }
 
