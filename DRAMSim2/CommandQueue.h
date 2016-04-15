@@ -105,6 +105,7 @@ protected:
     vector< vector<BusPacket *> > cmdBuffer;
     vector< vector<unsigned> > issue_time;
     vector< vector<unsigned> > rankStats;
+    vector< vector<unsigned> > conflictStats;
     vector<unsigned> previousRanks;
     vector<unsigned> perDomainTotal;
     vector< pair<unsigned, unsigned> > issuableRankBanks;

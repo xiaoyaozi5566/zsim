@@ -135,6 +135,10 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
         for (size_t j=0;j<NUM_RANKS;j++)
             perDomainQueue.push_back(0);
         rankStats.push_back(perDomainQueue);
+        vector<unsigned> conflictQueue;
+        for (size_t j=0;j<num_pids;j++)
+            conflictQueue.push_back(0);
+        conflictStats.push_back(conflictQueue);
         perDomainTotal.push_back(0);
     }
     
@@ -206,16 +210,28 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
         }
         if (schedulingPolicy == SideChannel)
         {          
-            if (perDomainTotal[srcId] % 1000 == 0)
+            // if (perDomainTotal[srcId] % 1000 == 0)
+            // {
+            //     printf("Domain %d: ", srcId);
+            //     for (size_t j=0;j<NUM_RANKS;j++)
+            //     {
+            //         printf("%4d ", rankStats[srcId][j]);
+            //         rankStats[srcId][j] = 0;
+            //     }
+            //     printf("Yao\n");
+            // }
+            if (total_reqs % 1000 == 0)
             {
-                printf("Domain %d: ", srcId);
-                for (size_t j=0;j<NUM_RANKS;j++)
+                for (size_t i=0;i<num_pids;i++)
                 {
-                    printf("%4d ", rankStats[srcId][j]);
-                    rankStats[srcId][j] = 0;
-                }
-                printf("Yao\n");
-            }                
+                    printf("Domain %ld conflict: ", i);
+                    for (size_t j=0;j<num_pids;j++)
+                    {
+                        printf("%d ", conflictStats[i][j]);
+                    }
+                    printf("Yao\n");
+                } 
+            }             
         }         
     }
     
@@ -851,7 +867,42 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 // create a fake reqeust
                 if (!foundIssuable)
                 {
-        			issuableRankBanks.clear();
+        			// update conflict stats
+                    for (size_t i=0; i<NUM_RANKS; i++)
+                    {
+                        if (getRefreshRank() == i || refreshRank == i) continue;
+                        vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
+                        if (queue.size() == 0) continue;
+                        // check rank conflict first
+                        if (i == previousRankBanks[6].first)
+                        {
+                            unsigned previous_domain = (current_domain + num_pids - 2) % num_pids;
+                            conflictStats[previous_domain][current_domain]++;
+                        }
+                        else if (i == previousRankBanks[7].first)
+                        {
+                            unsigned previous_domain = (current_domain + num_pids - 1) % num_pids;
+                            conflictStats[previous_domain][current_domain]++;
+                        }
+                        // next check bank conflict
+                        for (size_t j=0; j<queue.size(); j++)
+                        {
+                            if (queue[j]->busPacketType==ACTIVATE)
+                            {
+                                for (size_t k=0;k<6;k++)
+                                {
+                                    if (i == previousRankBanks[k].first && queue[j]->bank == previousRankBanks[k].second)
+                                    {
+                                        unsigned previous_domain = (current_domain + num_pids - 8) % num_pids;
+                                        conflictStats[previous_domain][current_domain]++;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    issuableRankBanks.clear();
                     for (size_t i=0; i<NUM_RANKS; i++)
                     {
                         if (getRefreshRank() == i || refreshRank == i) continue;
