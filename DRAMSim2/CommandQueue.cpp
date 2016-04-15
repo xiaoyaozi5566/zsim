@@ -222,6 +222,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
             // }
             if (total_reqs % 1000 == 0)
             {
+                printf("currentClockCycle: %ld\n", currentClockCycle);
                 for (size_t i=0;i<num_pids;i++)
                 {
                     printf("Domain %ld conflict: ", i);
@@ -893,7 +894,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 {
                                     if (i == previousRankBanks[k].first && queue[j]->bank == previousRankBanks[k].second)
                                     {
-                                        unsigned previous_domain = (current_domain + num_pids - 8) % num_pids;
+                                        unsigned previous_domain = (current_domain + num_pids - 8 + k) % num_pids;
                                         conflictStats[previous_domain][current_domain]++;
                                         break;
                                     }
