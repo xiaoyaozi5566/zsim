@@ -133,6 +133,7 @@ bool USE_LOW_POWER;
 bool VIS_FILE_OUTPUT;
 bool USE_RANDOM_ADDR;
 bool USE_BETTER_SCHEDULE;
+bool USE_MIX;
 
 bool VERIFICATION_OUTPUT;
 
@@ -224,6 +225,7 @@ static ConfigMap configMap[] =
 	DEFINE_BOOL_PARAM(VERIFICATION_OUTPUT,SYS_PARAM),
     DEFINE_BOOL_PARAM(USE_RANDOM_ADDR,SYS_PARAM),
     DEFINE_BOOL_PARAM(USE_BETTER_SCHEDULE, SYS_PARAM),
+    DEFINE_BOOL_PARAM(USE_MIX, SYS_PARAM),
 	{"", NULL, UINT, SYS_PARAM, false} // tracer value to signify end of list; if you delete it, epic fail will result
 };
 

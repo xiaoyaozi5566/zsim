@@ -121,6 +121,9 @@ protected:
     uint64_t num_issued;
     uint64_t num_same_bank;
     uint64_t queuing_delay;
+    uint64_t limit;
+    bool transition;
+    uint64_t transition_counter;
 
 	bool sendAct;
 };

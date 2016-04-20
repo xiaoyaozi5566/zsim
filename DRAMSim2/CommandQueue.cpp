@@ -65,6 +65,9 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
         num_issued(0),
         num_same_bank(0),
         queuing_delay(0),
+        limit(150),
+        transition(false),
+        transition_counter(0),
         sendAct(true)
 {
 	//set here to avoid compile errors
@@ -278,7 +281,31 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
 //command scheduling policy
 bool CommandQueue::pop(BusPacket **busPacket)
 {
-	//this can be done here because pop() is called every clock cycle by the parent MemoryController
+	// Switch back to side channel protection
+    if (USE_MIX)
+    {
+        if (currentClockCycle % 1000000 == 0 && schedulingPolicy == SecMem) 
+        {
+            transition = true;
+        }
+        if (currentClockCycle % 1000000 == 100)
+        {
+            printf("enter relax mode @ cycle %ld\n", currentClockCycle);
+            transition = false;
+            schedulingPolicy = SideChannel;
+            for (size_t i=0;i<num_pids;i++)
+                for (size_t j=0;j<num_pids;j++)
+                    conflictStats[i][j] = 0;
+        }
+        if (transition_counter > 0) transition_counter = transition_counter - 1;
+        if (transition_counter == 1) 
+        {
+            transition = false;  
+            schedulingPolicy = SecMem;
+        }  
+    }
+    
+    //this can be done here because pop() is called every clock cycle by the parent MemoryController
 	//	figures out the sliding window requirement for tFAW
 	//
 	//deal with tFAW book-keeping
@@ -314,7 +341,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
             
             // pair<unsigned, unsigned> *rankRequests = new pair<unsigned, unsigned>[NUM_RANKS];
             // at the start of a turn, decide what transactions to issue
-            if (rel_time == 0)
+            if (rel_time == 0 && !transition)
             {
                 num_turns++;
                 for (size_t i=0;i<NUM_RANKS;i++)
@@ -825,7 +852,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
         {
             unsigned rel_time = currentClockCycle % BTR_DELAY;
             unsigned current_domain = (currentClockCycle/BTR_DELAY) % num_pids;
-            if (rel_time == 0)
+            if (rel_time == 0 && !transition)
             {
                 bool foundIssuable = false;
                 for (size_t i=0;i<NUM_RANKS;i++)
@@ -879,11 +906,29 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         {
                             unsigned previous_domain = (current_domain + num_pids - 2) % num_pids;
                             conflictStats[previous_domain][current_domain]++;
+                            if (USE_MIX)
+                            {
+                                if (conflictStats[previous_domain][current_domain] > limit)
+                                {
+                                    transition = true;
+                                    transition_counter = 100;
+                                    printf("enter secure mode @ cycle %ld\n", currentClockCycle);
+                                }                                     
+                            }                           
                         }
                         else if (i == previousRankBanks[7].first)
                         {
                             unsigned previous_domain = (current_domain + num_pids - 1) % num_pids;
                             conflictStats[previous_domain][current_domain]++;
+                            if (USE_MIX)
+                            {
+                                if (conflictStats[previous_domain][current_domain] > limit)
+                                {
+                                    transition = true;
+                                    transition_counter = 100;
+                                    printf("enter secure mode @ cycle %ld\n", currentClockCycle);
+                                }                                     
+                            }  
                         }
                         // next check bank conflict
                         for (size_t j=0; j<queue.size(); j++)
@@ -896,6 +941,15 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                     {
                                         unsigned previous_domain = (current_domain + num_pids - 8 + k) % num_pids;
                                         conflictStats[previous_domain][current_domain]++;
+                                        if (USE_MIX)
+                                        {
+                                            if (conflictStats[previous_domain][current_domain] > limit)
+                                            {
+                                                transition = true;
+                                                transition_counter = 100;
+                                                printf("enter secure mode @ cycle %ld\n", currentClockCycle);
+                                            }                                     
+                                        } 
                                         break;
                                     }
                                 }

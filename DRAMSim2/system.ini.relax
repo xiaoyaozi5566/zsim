@@ -17,6 +17,7 @@ SCHEDULING_POLICY=side_channel  ; bank_then_rank_round_robin or rank_then_bank_r
 QUEUING_STRUCTURE=per_rank_per_domain			;per_rank or per_rank_per_bank
 USE_RANDOM_ADDR=true                            ;use random address mapping
 USE_BETTER_SCHEDULE=false                        ;use better schedule
+USE_MIX=false                                     ;use mix policy (side_channel and sec_mem)
 
 ;for true/false, please use all lowercase
 DEBUG_TRANS_Q=false
