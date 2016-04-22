@@ -197,7 +197,8 @@ enum SchedulingPolicy
     FixedService,
     BankPar,
     RankPar,
-    SideChannel
+    SideChannel,
+    Probability
 };
 
 

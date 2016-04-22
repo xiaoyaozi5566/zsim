@@ -22,6 +22,7 @@ systemIni_rankpar = "/home/yw438/zsim/DRAMSim2/system.ini.rankpar"
 systemIni_smart = "/home/yw438/zsim/DRAMSim2/system.ini.smart"
 systemIni_relax = "/home/yw438/zsim/DRAMSim2/system.ini.relax"
 systemIni_mix = "/home/yw438/zsim/DRAMSim2/system.ini.mix"
+systemIni_prob = "/home/yw438/zsim/DRAMSim2/system.ini.prob"
 
 # remove astar due to bugs
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
@@ -443,138 +444,306 @@ def singleprogs():
         os.system("condor_submit " + scriptgen_dir + "/" + filename)
         
 # call the function        
-folder = "single_prog"
-systemIni = systemIni_insec
-singleprogs()
+# folder = "single_prog"
+# systemIni = systemIni_insec
+# singleprogs()
+#
+# # Two programs
+# workloads = multiprog_2
+# # baseline scheme
+# folder = "insec_2"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_insec
+# multiprogs_DRAMSim2()
+#
+# # SecMem
+# folder = "sec_2"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_sec2banks
+# multiprogs_DRAMSim2()
+#
+# # FS
+# folder = "fs_2"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_fs
+# multiprogs_DRAMSim2()
+#
+# # smart scheduling
+# folder = "smart_2"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_smart
+# multiprogs_DRAMSim2()
+#
+# # Four programs
+# workloads = multiprog_4
+# # baseline scheme
+# folder = "insec_4"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_insec
+# multiprogs_DRAMSim2()
+#
+# # SecMem
+# folder = "sec_4"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_sec2banks
+# multiprogs_DRAMSim2()
+#
+# # FS
+# folder = "fs_4"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_fs
+# multiprogs_DRAMSim2()
+#
+# # smart scheduling
+# folder = "smart_4"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_smart
+# multiprogs_DRAMSim2()
+#
+# # Eight programs
+# workloads = multiprog_8
+# # baseline scheme
+# folder = "insec_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_insec
+# multiprogs_DRAMSim2()
+#
+# # SecMem
+# folder = "sec_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_sec2banks
+# multiprogs_DRAMSim2()
+#
+# # FS
+# folder = "fs_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_fs
+# multiprogs_DRAMSim2()
+#
+# # smart scheduling
+# folder = "smart_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_smart
+# multiprogs_DRAMSim2()
+#
+# # Random address mapping
+# folder = "secrand_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_secrand
+# multiprogs_DRAMSim2()
+#
+# # Interleaving three banks in one turn
+# folder = "sec3banks_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_sec
+# multiprogs_DRAMSim2()
+#
+# # bank partitioning
+# folder = "bankpar_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_bankpar
+# multiprogs_DRAMSim2()
+#
+# # rank partitioning
+# folder = "rankpar_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_rankpar
+# multiprogs_DRAMSim2()
+#
+# # side channel protection
+# folder = "relax_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_relax
+# multiprogs_DRAMSim2()
+#
+# # side channel protection with stats
+# workloads = multiprog_8
+# folder = "conflict_stats"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_relax
+# multiprogs_DRAMSim2()
+#
+# # mixed policy
+# workloads = multiprog_8
+# folder = "mix_100K"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_mix
+# multiprogs_DRAMSim2()
 
-# Two programs
-workloads = multiprog_2
-# baseline scheme
-folder = "insec_2"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_insec
-multiprogs_DRAMSim2()
-
-# SecMem
-folder = "sec_2"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_sec2banks
-multiprogs_DRAMSim2()
-
-# FS
-folder = "fs_2"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_fs
-multiprogs_DRAMSim2()
-
-# smart scheduling
-folder = "smart_2"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_smart
-multiprogs_DRAMSim2()
-
-# Four programs
-workloads = multiprog_4
-# baseline scheme
-folder = "insec_4"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_insec
-multiprogs_DRAMSim2()
-
-# SecMem
-folder = "sec_4"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_sec2banks
-multiprogs_DRAMSim2()
-
-# FS
-folder = "fs_4"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_fs
-multiprogs_DRAMSim2()
-
-# smart scheduling
-folder = "smart_4"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_smart
-multiprogs_DRAMSim2()
-
-# Eight programs
+# probability based scheduling
 workloads = multiprog_8
-# baseline scheme
-folder = "insec_8"
+folder = "prob"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)
@@ -585,157 +754,5 @@ if not os.path.exists(stdout_dir + "/" + folder):
 if not os.path.exists(stderr_dir + "/" + folder):
     os.makedirs(stderr_dir + "/" + folder)
 
-systemIni = systemIni_insec
-multiprogs_DRAMSim2()
-
-# SecMem
-folder = "sec_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_sec2banks
-multiprogs_DRAMSim2()
-
-# FS
-folder = "fs_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_fs
-multiprogs_DRAMSim2()
-
-# smart scheduling
-folder = "smart_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_smart
-multiprogs_DRAMSim2()
-
-# Random address mapping
-folder = "secrand_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_secrand
-multiprogs_DRAMSim2()
-
-# Interleaving three banks in one turn
-folder = "sec3banks_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_sec
-multiprogs_DRAMSim2()
-
-# bank partitioning
-folder = "bankpar_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_bankpar
-multiprogs_DRAMSim2()
-
-# rank partitioning
-folder = "rankpar_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_rankpar
-multiprogs_DRAMSim2()
-
-# side channel protection
-folder = "relax_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_relax
-multiprogs_DRAMSim2()
-
-# side channel protection with stats
-workloads = multiprog_8
-folder = "conflict_stats"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_relax
-multiprogs_DRAMSim2()
-
-# mixed policy
-workloads = multiprog_8
-folder = "mix_100K"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_mix
+systemIni = systemIni_prob
 multiprogs_DRAMSim2()
