@@ -21,6 +21,7 @@ systemIni_bankpar = "/home/yw438/zsim/DRAMSim2/system.ini.bankpar"
 systemIni_rankpar = "/home/yw438/zsim/DRAMSim2/system.ini.rankpar"
 systemIni_smart = "/home/yw438/zsim/DRAMSim2/system.ini.smart"
 systemIni_relax = "/home/yw438/zsim/DRAMSim2/system.ini.relax"
+systemIni_mix = "/home/yw438/zsim/DRAMSim2/system.ini.mix"
 
 # remove astar due to bugs
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
@@ -705,4 +706,36 @@ if not os.path.exists(stderr_dir + "/" + folder):
     os.makedirs(stderr_dir + "/" + folder)
 
 systemIni = systemIni_relax
+multiprogs_DRAMSim2()
+
+# side channel protection with stats
+workloads = multiprog_8
+folder = "conflict_stats"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_relax
+multiprogs_DRAMSim2()
+
+# mixed policy
+workloads = multiprog_8
+folder = "mix_100K"
+
+if not os.path.exists(results_dir + "/" + folder):
+    os.makedirs(results_dir + "/" + folder)
+
+if not os.path.exists(stdout_dir + "/" + folder):
+    os.makedirs(stdout_dir + "/" + folder)
+
+if not os.path.exists(stderr_dir + "/" + folder):
+    os.makedirs(stderr_dir + "/" + folder)
+
+systemIni = systemIni_mix
 multiprogs_DRAMSim2()
