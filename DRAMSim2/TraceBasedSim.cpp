@@ -52,7 +52,7 @@
 using namespace DRAMSim;
 using namespace std;
 
-//#define RETURN_TRANSACTIONS 1
+#define RETURN_TRANSACTIONS 1
 
 #ifndef _SIM_
 int SHOW_SIM_OUTPUT = 1;
@@ -61,7 +61,7 @@ ofstream visDataOut; //mostly used in MemoryController
 #ifdef RETURN_TRANSACTIONS
 class TransactionReceiver
 {
-	private: 
+public: 
 		map<uint64_t, list<uint64_t> > pendingReadRequests; 
 		map<uint64_t, list<uint64_t> > pendingWriteRequests; 
 
@@ -107,15 +107,17 @@ class TransactionReceiver
 			uint64_t latency = done_cycle - added_cycle;
 
 			pendingReadRequests[address].pop_front();
-			cout << "Read Callback:  0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
+            if (address == 0x41a7c4c96b680780)
+			    cout << "Read Callback:  0x"<< std::hex << address << std::dec << " latency = "<<latency<<" cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
 		}
+        
 		void write_complete(unsigned id, uint64_t address, uint64_t done_cycle)
 		{
 			map<uint64_t, list<uint64_t> >::iterator it;
 			it = pendingWriteRequests.find(address); 
 			if (it == pendingWriteRequests.end())
 			{
-				ERROR("Cant find a pending read for this one"); 
+				ERROR("Cant find a pending write for this one"); 
 				exit(-1);
 			}
 			else
@@ -370,7 +372,7 @@ IniReader::OverrideMap *parseParamOverrides(const string &kv_str)
 int main(int argc, char **argv)
 {
 	int c;
-	TraceType traceType;
+    // TraceType traceType;
 	string traceFileName;
 	string systemIniFilename("system.ini");
 	string deviceIniFilename;
@@ -378,10 +380,15 @@ int main(int argc, char **argv)
 	string *visFilename = NULL;
 	unsigned megsOfMemory=2048;
 	bool useClockCycle=true;
+    unsigned numPids = 2;
+    uint64_t sender_addr = 0x3d1b58ba507ed780;
+    uint64_t receiver_addr = 0x41a7c4c96b680780;
+    unsigned repeat = 10000;
+    unsigned secret[10] = {0, 0, 1, 1, 0, 1, 1, 0, 1, 0};
 	
 	IniReader::OverrideMap *paramOverrides = NULL; 
 
-	unsigned numCycles=1000;
+	unsigned numCycles=10*repeat;
 	//getopt stuff
 	while (1)
 	{
@@ -398,10 +405,11 @@ int main(int argc, char **argv)
 			{"help", no_argument, 0, 'h'},
 			{"size", required_argument, 0, 'S'},
 			{"visfile", required_argument, 0, 'v'},
+            {"numpids", required_argument, 0, 'N'},
 			{0, 0, 0, 0}
 		};
 		int option_index=0; //for getopt
-		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:v:qn", long_options, &option_index);
+		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:v:N:qn", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -446,6 +454,9 @@ int main(int argc, char **argv)
 		case 'q':
 			SHOW_SIM_OUTPUT=false;
 			break;
+        case 'N':
+            numPids=atoi(optarg);
+            break;
 		case 'n':
 			useClockCycle=false;
 			break;
@@ -464,27 +475,6 @@ int main(int argc, char **argv)
 
 	// get the trace filename
 	string temp = traceFileName.substr(traceFileName.find_last_of("/")+1);
-
-	//get the prefix of the trace name
-	temp = temp.substr(0,temp.find_first_of("_"));
-	if (temp=="mase")
-	{
-		traceType = mase;
-	}
-	else if (temp=="k6")
-	{
-		traceType = k6;
-	}
-	else if (temp=="misc")
-	{
-		traceType = misc;
-	}
-	else
-	{
-		ERROR("== Unknown Tracefile Type : "<<temp);
-		exit(0);
-	}
-
 
 	// no default value for the default model name
 	if (deviceIniFilename.length() == 0)
@@ -506,9 +496,8 @@ int main(int argc, char **argv)
 	ifstream traceFile;
 	string line;
 
-
 	// Yao: need to fix num_pids for trace based simulation
-    MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, 2, visFilename, paramOverrides);
+    MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, numPids);
 	// set the frequency ratio to 1:1
 	memorySystem->setCPUClockSpeed(0); 
 
@@ -534,84 +523,90 @@ int main(int argc, char **argv)
 	Transaction *trans=NULL;
 	bool pendingTrans = false;
 
-	traceFile.open(traceFileName.c_str());
-
-	if (!traceFile.is_open())
-	{
-		cout << "== Error - Could not open trace file"<<endl;
-		exit(0);
-	}
+    // traceFile.open(traceFileName.c_str());
+    //
+    // if (!traceFile.is_open())
+    // {
+    //     cout << "== Error - Could not open trace file"<<endl;
+    //     exit(0);
+    // }
 
 	for (size_t i=0;i<numCycles;i++)
 	{
-		if (!pendingTrans)
-		{
-			if (!traceFile.eof())
-			{
-				getline(traceFile, line);
-
-				if (line.size() > 0)
-				{
-					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
-					// Yao: needs to get the corrent srcId for trace-based simulation
-					trans = new Transaction(transType, addr, data, 0);
-					alignTransactionAddress(*trans); 
-
-					if (i>=clockCycle)
-					{
-						if (!(*memorySystem).addTransaction(trans))
-						{
-							pendingTrans = true;
-						}
-						else
-						{
+        // printf("cycle %ld\n", i);
 #ifdef RETURN_TRANSACTIONS
-							transactionReceiver.add_pending(trans, i); 
-#endif
-							// the memory system accepted our request so now it takes ownership of it
-							trans = NULL; 
-						}
-					}
-					else
-					{
-						pendingTrans = true;
-					}
-				}
-				else
-				{
-					DEBUG("WARNING: Skipping line "<<lineNumber<< " ('" << line << "') in tracefile");
-				}
-				lineNumber++;
-			}
-			else
-			{
-				//we're out of trace, set pending=false and let the thing spin without adding transactions
-				pendingTrans = false; 
-			}
-		}
-
-		else if (pendingTrans && i >= clockCycle)
+        map<uint64_t, list<uint64_t> >::iterator it;
+        // Sender, ID = 0
+        unsigned which_bit = i/repeat;
+        unsigned bit = secret[which_bit];
+        if (bit == 1)
+        {
+    		it = transactionReceiver.pendingReadRequests.find(sender_addr); 
+    		// first time to send the address
+            if (it == transactionReceiver.pendingReadRequests.end())
+    		{
+    			if ((*memorySystem).addTransaction(false, sender_addr, 0))
+                {
+                    trans = new Transaction(DATA_READ, sender_addr, data, 0);
+                    transactionReceiver.add_pending(*trans, i);
+                }
+    		}
+            // request has finished
+    		else if (it->second.size() == 0)
+    		{
+    			if ((*memorySystem).addTransaction(false, sender_addr, 0))
+                {
+                    trans = new Transaction(DATA_READ, sender_addr, data, 0);
+                    transactionReceiver.add_pending(*trans, i);
+                }
+    		}
+        }		
+        // Receiver, ID = 1
+        it = transactionReceiver.pendingReadRequests.find(receiver_addr); 
+		// first time to send the address
+        if (it == transactionReceiver.pendingReadRequests.end())
 		{
-			pendingTrans = !(*memorySystem).addTransaction(trans);
-			if (!pendingTrans)
-			{
-#ifdef RETURN_TRANSACTIONS
-				transactionReceiver.add_pending(trans, i); 
-#endif
-				trans=NULL;
-			}
+			if ((*memorySystem).addTransaction(false, receiver_addr, 1))
+            {
+                trans = new Transaction(DATA_READ, receiver_addr, data, 1);
+                transactionReceiver.add_pending(*trans, i);
+            }
 		}
-
+        // request has finished
+		else if (it->second.size() == 0)
+		{
+			if ((*memorySystem).addTransaction(false, receiver_addr, 1))
+            {
+                trans = new Transaction(DATA_READ, receiver_addr, data, 1);
+                transactionReceiver.add_pending(*trans, i);
+            }
+		}
+        // Other requests
+        for (size_t j=2;j<numPids;j++)
+        {
+            do {
+                addr = rand();
+                addr = addr << 32;
+                addr = addr + rand();
+                addr >>= THROW_AWAY_BITS;
+                addr <<= THROW_AWAY_BITS;
+            } while(addr == sender_addr || addr == receiver_addr);
+            if ((*memorySystem).addTransaction(false, addr, j))
+            {
+                trans = new Transaction(DATA_READ, addr, data, j);
+                transactionReceiver.add_pending(*trans, i);
+            }
+        }
+#endif
 		(*memorySystem).update();
 	}
-
-	traceFile.close();
-	memorySystem->printStats(true);
+    // traceFile.close();
+    // memorySystem->printStats(true);
 	// make valgrind happy
-	if (trans)
-	{
-		delete trans;
-	}
-	delete(memorySystem);
+    // if (trans)
+    // {
+    //     delete trans;
+    // }
+    // delete(memorySystem);
 }
 #endif

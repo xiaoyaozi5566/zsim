@@ -2,8 +2,8 @@
 
 NUM_CHANS=1								; number of *logically independent* channels (i.e. each with a separate memory controller); should be a power of 2
 JEDEC_DATA_BUS_BITS=64 		 		; Always 64 for DDRx; if you want multiple *ganged* channels, set this to N*64
-TRANS_QUEUE_DEPTH=32					; transaction queue, i.e., CPU-level commands such as:  READ 0xbeef
-CMD_QUEUE_DEPTH=32						; command queue, i.e., DRAM-level commands such as: CAS 544, RAS 4
+TRANS_QUEUE_DEPTH=1					; transaction queue, i.e., CPU-level commands such as:  READ 0xbeef
+CMD_QUEUE_DEPTH=4						; command queue, i.e., DRAM-level commands such as: CAS 544, RAS 4
 BTB_DELAY=18;
 BTR_DELAY=6;
 RETURN_DELAY=50;
