@@ -36,7 +36,8 @@ namespace DRAMSim
 
 void addressMapping(uint64_t physicalAddress, unsigned num_pids, uint32_t srcId, unsigned &newTransactionChan, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn)
 {
-	uint64_t tempA, tempB;
+    // printf("addr: %lx,", physicalAddress);
+    uint64_t tempA, tempB;
 	unsigned transactionSize = TRANSACTION_SIZE;
 	uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask
 	unsigned channelBitWidth = NUM_CHANS_LOG;
@@ -360,6 +361,6 @@ void addressMapping(uint64_t physicalAddress, unsigned num_pids, uint32_t srcId,
     {
         newTransactionRank = newTransactionRank + srcId*(NUM_RANKS/num_pids);
     }
-
+    // printf(" srcId: %d, rank: %d, bank: %d\n", srcId, newTransactionRank, newTransactionBank);
 }
 };

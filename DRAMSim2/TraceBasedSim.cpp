@@ -381,9 +381,9 @@ int main(int argc, char **argv)
 	unsigned megsOfMemory=2048;
 	bool useClockCycle=true;
     unsigned numPids = 2;
-    uint64_t sender_addr = 0x3d1b58ba507ed780;
+    uint64_t sender_addr = 0x3822cb016ce00440;
     uint64_t receiver_addr = 0x41a7c4c96b680780;
-    unsigned repeat = 10000;
+    unsigned repeat = 1000000;
     unsigned secret[10] = {0, 0, 1, 1, 0, 1, 1, 0, 1, 0};
 	
 	IniReader::OverrideMap *paramOverrides = NULL; 
