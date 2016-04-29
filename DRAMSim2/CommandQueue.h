@@ -110,6 +110,7 @@ protected:
     vector<unsigned> perDomainTotal;
     vector< pair<unsigned, unsigned> > issuableRankBanks;
     vector< pair<unsigned, unsigned> > previousRankBanks;
+    vector<unsigned> previousDomains;
     unsigned previousBanks[3][3];
     unsigned tempRanks[3];
     pair<unsigned, unsigned> *rankRequests;
@@ -124,6 +125,7 @@ protected:
     uint64_t limit;
     bool transition;
     uint64_t transition_counter;
+    SchedulingPolicy insecPolicy;
 
 	bool sendAct;
 };

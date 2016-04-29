@@ -23,6 +23,7 @@ systemIni_smart = "/home/yw438/zsim/DRAMSim2/system.ini.smart"
 systemIni_relax = "/home/yw438/zsim/DRAMSim2/system.ini.relax"
 systemIni_mix = "/home/yw438/zsim/DRAMSim2/system.ini.mix"
 systemIni_prob = "/home/yw438/zsim/DRAMSim2/system.ini.prob"
+systemIni_probmix = "/home/yw438/zsim/DRAMSim2/system.ini.probmix"
 
 # remove astar due to bugs
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
@@ -741,9 +742,25 @@ def singleprogs():
 # systemIni = systemIni_mix
 # multiprogs_DRAMSim2()
 
+# # probability based scheduling
+# workloads = multiprog_8
+# folder = "prob"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_prob
+# multiprogs_DRAMSim2()
+
 # probability based scheduling
 workloads = multiprog_8
-folder = "prob"
+folder = "probmix_1M"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)
@@ -754,5 +771,5 @@ if not os.path.exists(stdout_dir + "/" + folder):
 if not os.path.exists(stderr_dir + "/" + folder):
     os.makedirs(stderr_dir + "/" + folder)
 
-systemIni = systemIni_prob
+systemIni = systemIni_probmix
 multiprogs_DRAMSim2()

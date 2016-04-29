@@ -65,9 +65,10 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
         num_issued(0),
         num_same_bank(0),
         queuing_delay(0),
-        limit(150),
+        limit(1500),
         transition(false),
         transition_counter(0),
+        insecPolicy(schedulingPolicy),
         sendAct(true)
 {
 	//set here to avoid compile errors
@@ -130,6 +131,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
     for (size_t i=0;i<8;i++)
     {
         previousRankBanks.push_back(make_pair(0,0));
+        previousDomains.push_back(i);
     }
     
     for (size_t i=0;i<num_pids;i++)
@@ -211,7 +213,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
             printf("num_reqs: %f, num_issued: %f, num_same_bank: %f\n", num_reqs*1.0/num_turns, num_issued*1.0/num_turns, num_same_bank*1.0/num_turns);
             printf("queueing_delay: %f\n", queuing_delay*1.0/num_issued);           
         }
-        if (schedulingPolicy == SideChannel)
+        if (schedulingPolicy == SideChannel || schedulingPolicy == Probability)
         {          
             // if (perDomainTotal[srcId] % 1000 == 0)
             // {
@@ -290,9 +292,9 @@ bool CommandQueue::pop(BusPacket **busPacket)
         }
         if (currentClockCycle % 1000000 == 100)
         {
-            printf("enter relax mode @ cycle %ld\n", currentClockCycle);
+            printf("enter insecure mode @ cycle %ld\n", currentClockCycle);
             transition = false;
-            schedulingPolicy = SideChannel;
+            schedulingPolicy = insecPolicy;
             for (size_t i=0;i<num_pids;i++)
                 for (size_t j=0;j<num_pids;j++)
                     conflictStats[i][j] = 0;
@@ -1031,7 +1033,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
         {
             unsigned rel_time = currentClockCycle % BTR_DELAY;
             unsigned current_domain = rand() % num_pids;
-            if (rel_time == 0)
+            if (rel_time == 0 && !transition)
             {
                 bool foundIssuable = false;
                 for (size_t i=0;i<NUM_RANKS;i++)
@@ -1074,6 +1076,68 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 // create a fake reqeust
                 if (!foundIssuable)
                 {                    
+        			// update conflict stats
+                    for (size_t i=0; i<NUM_RANKS; i++)
+                    {
+                        if (getRefreshRank() == i || refreshRank == i) continue;
+                        vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
+                        if (queue.size() == 0) continue;
+                        // check rank conflict first
+                        if (i == previousRankBanks[6].first)
+                        {
+                            unsigned previous_domain = previousDomains[6];
+                            conflictStats[previous_domain][current_domain]++;
+                            if (USE_MIX)
+                            {
+                                if (conflictStats[previous_domain][current_domain] > limit)
+                                {
+                                    transition = true;
+                                    transition_counter = 100;
+                                    printf("enter secure mode @ cycle %ld\n", currentClockCycle);
+                                }                                     
+                            }                           
+                        }
+                        else if (i == previousRankBanks[7].first)
+                        {
+                            unsigned previous_domain = previousDomains[7];
+                            conflictStats[previous_domain][current_domain]++;
+                            if (USE_MIX)
+                            {
+                                if (conflictStats[previous_domain][current_domain] > limit)
+                                {
+                                    transition = true;
+                                    transition_counter = 100;
+                                    printf("enter secure mode @ cycle %ld\n", currentClockCycle);
+                                }                                     
+                            }  
+                        }
+                        // next check bank conflict
+                        for (size_t j=0; j<queue.size(); j++)
+                        {
+                            if (queue[j]->busPacketType==ACTIVATE)
+                            {
+                                for (size_t k=0;k<6;k++)
+                                {
+                                    if (i == previousRankBanks[k].first && queue[j]->bank == previousRankBanks[k].second)
+                                    {
+                                        unsigned previous_domain = previousDomains[k];
+                                        conflictStats[previous_domain][current_domain]++;
+                                        if (USE_MIX)
+                                        {
+                                            if (conflictStats[previous_domain][current_domain] > limit)
+                                            {
+                                                transition = true;
+                                                transition_counter = 100;
+                                                printf("enter secure mode @ cycle %ld\n", currentClockCycle);
+                                            }                                     
+                                        } 
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
                     issuableRankBanks.clear();
                     for (size_t i=0; i<NUM_RANKS; i++)
                     {
@@ -1099,6 +1163,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     unsigned b = issuableRankBanks[rankBank].second;
                     previousRankBanks.erase(previousRankBanks.begin());
                     previousRankBanks.push_back(make_pair(r, b));
+                    previousDomains.erase(previousDomains.begin());
+                    previousDomains.push_back(current_domain);
                 }
             }
             bool foundIssuable = false;
