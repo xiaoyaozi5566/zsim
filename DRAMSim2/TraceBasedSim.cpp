@@ -385,6 +385,9 @@ int main(int argc, char **argv)
     uint64_t receiver_addr = 0x41a7c4c96b680780;
     unsigned repeat = 1000000;
     unsigned secret[10] = {0, 0, 1, 1, 0, 1, 1, 0, 1, 0};
+    unsigned sender_issue_time = 0;
+    unsigned receiver_issue_time = 0;
+    unsigned interval = 1000;
 	
 	IniReader::OverrideMap *paramOverrides = NULL; 
 
@@ -549,15 +552,17 @@ int main(int argc, char **argv)
                 {
                     trans = new Transaction(DATA_READ, sender_addr, data, 0);
                     transactionReceiver.add_pending(*trans, i);
+                    sender_issue_time = i;
                 }
     		}
             // request has finished
-    		else if (it->second.size() == 0)
+    		else if (it->second.size() == 0 && i > sender_issue_time + interval )
     		{
     			if ((*memorySystem).addTransaction(false, sender_addr, 0))
                 {
                     trans = new Transaction(DATA_READ, sender_addr, data, 0);
                     transactionReceiver.add_pending(*trans, i);
+                    sender_issue_time = i;
                 }
     		}
         }		
@@ -570,15 +575,17 @@ int main(int argc, char **argv)
             {
                 trans = new Transaction(DATA_READ, receiver_addr, data, 1);
                 transactionReceiver.add_pending(*trans, i);
+                receiver_issue_time = i;
             }
 		}
         // request has finished
-		else if (it->second.size() == 0)
+		else if (it->second.size() == 0 && i > receiver_issue_time + interval)
 		{
 			if ((*memorySystem).addTransaction(false, receiver_addr, 1))
             {
                 trans = new Transaction(DATA_READ, receiver_addr, data, 1);
                 transactionReceiver.add_pending(*trans, i);
+                receiver_issue_time = i;
             }
 		}
         // Other requests

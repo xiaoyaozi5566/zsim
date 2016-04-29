@@ -1,0 +1,8 @@
+Universe = Vanilla
+getenv = True
+Executable = /home/yw438/zsim/DRAMSim2/dramsim2.sh
+Output = /home/yw438/zsim/DRAMSim2/trace_results/limit_1000000.txt
+Error = /home/yw438/zsim/DRAMSim2/trace_results/limit_1000000.err
+Log = /home/yw438/zsim/DRAMSim2/trace_results/limit_1000000.log
+Queue
+
