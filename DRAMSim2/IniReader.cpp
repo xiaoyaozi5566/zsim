@@ -710,6 +710,14 @@ void IniReader::InitEnumsFromStrings()
 			DEBUG("SCHEDULING: Probability Based Protection");
 		}
     }
+    else if (SCHEDULING_POLICY == "limit")
+    {
+        schedulingPolicy = AccessLimit;
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("SCHEDULING: Limit Accesses");
+		}       
+    }
 	else
 	{
 		cout << "WARNING: Unknown scheduling policy '"<<SCHEDULING_POLICY<<"'; valid options are 'rank_then_bank_round_robin' or 'bank_then_rank_round_robin'; defaulting to Bank Then Rank Round Robin" << endl;

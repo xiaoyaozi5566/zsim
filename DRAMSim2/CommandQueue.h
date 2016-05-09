@@ -106,6 +106,7 @@ protected:
     vector< vector<unsigned> > issue_time;
     vector< vector<unsigned> > rankStats;
     vector< vector<unsigned> > conflictStats;
+    vector< vector< pair<unsigned, uint64_t> > > issueHistory;
     vector<unsigned> previousRanks;
     vector<unsigned> perDomainTotal;
     vector< pair<unsigned, unsigned> > issuableRankBanks;
@@ -123,6 +124,7 @@ protected:
     uint64_t num_same_bank;
     uint64_t queuing_delay;
     uint64_t limit;
+    uint64_t window_size;
     bool transition;
     uint64_t transition_counter;
     SchedulingPolicy insecPolicy;

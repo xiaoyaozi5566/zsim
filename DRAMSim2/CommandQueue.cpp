@@ -66,6 +66,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
         num_same_bank(0),
         queuing_delay(0),
         limit(1500),
+        window_size(100000),
         transition(false),
         transition_counter(0),
         insecPolicy(schedulingPolicy),
@@ -145,6 +146,8 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
             conflictQueue.push_back(0);
         conflictStats.push_back(conflictQueue);
         perDomainTotal.push_back(0);
+        vector< pair<unsigned, uint64_t> > historyQueue;
+        issueHistory.push_back(historyQueue);
     }
     
     rankRequests = new pair<unsigned, unsigned>[NUM_RANKS];
@@ -1210,6 +1213,209 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 refreshRank = -1;
             if (!foundIssuable) return false;
         }
+        else if (schedulingPolicy == AccessLimit)
+        {
+            // first update the issue history
+            if (currentClockCycle > window_size)
+            {
+                for (size_t i=0;i<num_pids;i++)
+                {
+                    if (issueHistory[i].empty()) continue;
+                    if (issueHistory[i][0].first < (currentClockCycle - window_size))
+                        issueHistory[i].erase(issueHistory[i].begin());      
+                }
+            }
+            
+            unsigned rel_time = currentClockCycle % BTR_DELAY;
+            unsigned current_domain = rand() % num_pids;
+            if (rel_time == 0 && !transition)
+            {
+                bool foundIssuable = false;
+                for (size_t i=0;i<NUM_RANKS;i++)
+                {
+                    // Cannot issue request to refreshing rank
+                    if (getRefreshRank() == i || refreshRank == i) continue;
+                    // Cannot issue the same rank as previous ranks
+                    if (i == previousRankBanks[6].first || i == previousRankBanks[7].first) continue;
+                    vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
+                    for (size_t j=0; j<queue.size();j++)
+                    {
+                        if (queue[j]->busPacketType==ACTIVATE)
+                        {
+                            bool canIssue = true;
+                            for (size_t k=0;k<6;k++)
+                            {
+                                if (i == previousRankBanks[k].first && queue[j]->bank == previousRankBanks[k].second)
+                                {
+                                    canIssue = false;
+                                    break;
+                                }
+                            }
+                            // check if the address is issued within N cycles
+                            for (size_t k=0; k<issueHistory[current_domain].size();k++)
+                            {
+                                if (queue[j]->physicalAddress == issueHistory[current_domain][k].second)
+                                {
+                                    canIssue = false;
+                                    break;
+                                }
+                            }
+                            if (!canIssue) continue;
+                            unsigned activate_time = currentClockCycle;
+                            unsigned rdwr_time = activate_time + tRCD;
+                            cmdBuffer[0].push_back(queue[j]);
+                            cmdBuffer[0].push_back(queue[j+1]);
+                            issueHistory[current_domain].push_back(make_pair(currentClockCycle, queue[j]->physicalAddress));
+                            issue_time[0].push_back(activate_time);
+                            issue_time[0].push_back(rdwr_time);
+                            previousRankBanks.erase(previousRankBanks.begin());
+                            previousRankBanks.push_back(make_pair(i, queue[j]->bank));
+                            queue.erase(queue.begin() + j + 1);
+                            queue.erase(queue.begin() + j);
+                            
+                            foundIssuable = true;
+                        }
+                        if (foundIssuable) break;
+                    }
+                    if (foundIssuable) break;
+                }
+                // create a fake reqeust
+                if (!foundIssuable)
+                {                    
+        			// update conflict stats
+                    for (size_t i=0; i<NUM_RANKS; i++)
+                    {
+                        if (getRefreshRank() == i || refreshRank == i) continue;
+                        vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
+                        if (queue.size() == 0) continue;
+                        // check rank conflict first
+                        if (i == previousRankBanks[6].first)
+                        {
+                            unsigned previous_domain = previousDomains[6];
+                            conflictStats[previous_domain][current_domain]++;
+                            if (USE_MIX)
+                            {
+                                if (conflictStats[previous_domain][current_domain] > limit)
+                                {
+                                    transition = true;
+                                    transition_counter = 100;
+                                    printf("enter secure mode @ cycle %ld\n", currentClockCycle);
+                                }                                     
+                            }                           
+                        }
+                        else if (i == previousRankBanks[7].first)
+                        {
+                            unsigned previous_domain = previousDomains[7];
+                            conflictStats[previous_domain][current_domain]++;
+                            if (USE_MIX)
+                            {
+                                if (conflictStats[previous_domain][current_domain] > limit)
+                                {
+                                    transition = true;
+                                    transition_counter = 100;
+                                    printf("enter secure mode @ cycle %ld\n", currentClockCycle);
+                                }                                     
+                            }  
+                        }
+                        // next check bank conflict
+                        for (size_t j=0; j<queue.size(); j++)
+                        {
+                            if (queue[j]->busPacketType==ACTIVATE)
+                            {
+                                for (size_t k=0;k<6;k++)
+                                {
+                                    if (i == previousRankBanks[k].first && queue[j]->bank == previousRankBanks[k].second)
+                                    {
+                                        unsigned previous_domain = previousDomains[k];
+                                        conflictStats[previous_domain][current_domain]++;
+                                        if (USE_MIX)
+                                        {
+                                            if (conflictStats[previous_domain][current_domain] > limit)
+                                            {
+                                                transition = true;
+                                                transition_counter = 100;
+                                                printf("enter secure mode @ cycle %ld\n", currentClockCycle);
+                                            }                                     
+                                        } 
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    issuableRankBanks.clear();
+                    for (size_t i=0; i<NUM_RANKS; i++)
+                    {
+                        if (getRefreshRank() == i || refreshRank == i) continue;
+                        if (i == previousRankBanks[6].first || i == previousRankBanks[7].first) continue;
+                        for (size_t j=0; j<NUM_BANKS; j++)
+                        {
+                            bool canIssue = true;
+                            for (size_t k=0;k<6;k++)
+                            {
+                                if (i == previousRankBanks[k].first && j == previousRankBanks[k].second)
+                                {
+                                    canIssue = false;
+                                    break;
+                                }
+                            }
+                            if (!canIssue) continue;
+                            issuableRankBanks.push_back(make_pair(i,j));
+                        }
+                    }
+                    unsigned rankBank = rand() % issuableRankBanks.size();
+                    unsigned r = issuableRankBanks[rankBank].first;
+                    unsigned b = issuableRankBanks[rankBank].second;
+                    previousRankBanks.erase(previousRankBanks.begin());
+                    previousRankBanks.push_back(make_pair(r, b));
+                    previousDomains.erase(previousDomains.begin());
+                    previousDomains.push_back(current_domain);
+                }
+            }
+            bool foundIssuable = false;
+            for (size_t i=0;i<issue_time[0].size();i++)
+            {
+                if (issue_time[0][i] < currentClockCycle)
+                    printf("issue time smaller than current clock cycle!\n");
+                if (issue_time[0][i] == currentClockCycle)
+                {
+                    *busPacket = cmdBuffer[0][i];
+                    // printf("pop packet %lx from domain %d @ cycle %ld, rank %d, bank %d\n", cmdBuffer[0][i]->physicalAddress, cmdBuffer[0][i]->srcId, currentClockCycle, cmdBuffer[0][i]->rank, cmdBuffer[0][i]->bank);
+                    assert(isIssuable(*busPacket));
+                    cmdBuffer[0].erase(cmdBuffer[0].begin() + i);
+                    issue_time[0].erase(issue_time[0].begin() + i);
+                    foundIssuable = true;
+                    break;
+                }
+                if (foundIssuable) break;
+            }
+            // Check to see if we can issue a pending refresh command
+            if (!foundIssuable && refreshWaiting)
+            {
+                bool foundActiveOrTooEarly = false;
+                for (size_t b=0;b<NUM_BANKS;b++)
+                {
+                    if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
+                    {
+                        foundActiveOrTooEarly = true;
+                        break;
+                    }
+                }
+    			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
+    			{
+    				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);  				
+    				refreshWaiting = false;
+                    foundIssuable = true;
+                    finish_refresh = currentClockCycle + tRFC;
+                    // printf("issuing refresh to rank %d\n", refreshRank);
+    			}
+            }
+            // Mark the end of refresh, so the refreshing rank can issue requests again
+            if (currentClockCycle == finish_refresh)
+                refreshRank = -1;
+            if (!foundIssuable) return false;
+        }
         else
         {
             bool sendingREF = false;
@@ -1839,6 +2045,19 @@ void CommandQueue::nextRankAndBank(unsigned &rank, unsigned &bank)
 		}
     }
     else if (schedulingPolicy == Probability)
+    {
+		bank++;
+		if (bank == NUM_BANKS)
+		{
+			bank = 0;
+			rank++;
+			if (rank == NUM_RANKS)
+			{
+				rank = 0;
+			}
+		}
+    }
+    else if (schedulingPolicy == AccessLimit)
     {
 		bank++;
 		if (bank == NUM_BANKS)

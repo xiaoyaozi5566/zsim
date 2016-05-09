@@ -198,7 +198,8 @@ enum SchedulingPolicy
     BankPar,
     RankPar,
     SideChannel,
-    Probability
+    Probability,
+    AccessLimit
 };
 
 
