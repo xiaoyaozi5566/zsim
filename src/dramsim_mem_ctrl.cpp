@@ -69,10 +69,11 @@ class DRAMSimAccEvent : public TimingEvent {
 
 DRAMSimMemory::DRAMSimMemory(string& dramTechIni, string& dramSystemIni, string& outputDir, string& traceName,
         uint32_t capacityMB, uint64_t cpuFreqHz, uint32_t _minLatency, uint32_t _domain, const g_string& _name,
-        uint32_t num_pids)
+        uint32_t num_pids, bool _multithread)
 {
     curCycle = 0;
     minLatency = _minLatency;
+    multithread = _multithread;
     // NOTE: this will alloc DRAM on the heap and not the glob_heap, make sure only one process ever handles this
     // Yao: need to add num_pids from cfg file
     dramCore = getMemorySystemInstance(dramTechIni, dramSystemIni, outputDir, traceName, capacityMB, num_pids);
@@ -121,8 +122,15 @@ uint64_t DRAMSimMemory::access(MemReq& req) {
     if ((req.type != PUTS /*discard clean writebacks*/) && zinfo->eventRecorders[req.srcId]) {
         Address addr = req.lineAddr << lineBits;
         bool isWrite = (req.type == PUTX);
-        DRAMSimAccEvent* memEv = new (zinfo->eventRecorders[req.srcId]) DRAMSimAccEvent(this, isWrite, addr, domain, req.srcId);
-        // info("packet %lx from domain %d @ cycle %ld", addr, req.srcId, req.cycle);
+        uint32_t srcId = req.srcId;
+        // If we use multithreaded program, change their security domain ID
+        if (multithread)
+        {
+            if (req.srcId < 4) srcId = 0;
+            else srcId = 1;
+        }
+        DRAMSimAccEvent* memEv = new (zinfo->eventRecorders[req.srcId]) DRAMSimAccEvent(this, isWrite, addr, domain, srcId);
+        // info("packet %lx from domain %d @ cycle %ld", addr, srcId, req.cycle);
         memEv->setMinStartCycle(req.cycle);
         TimingRecord tr = {addr, req.cycle, respCycle, req.type, memEv, memEv};
         zinfo->eventRecorders[req.srcId]->pushRecord(tr);

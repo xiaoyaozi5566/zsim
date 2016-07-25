@@ -331,6 +331,9 @@ MemObject* BuildMemoryController(Config& config, uint32_t lineSize, uint32_t fre
     
     //Domain
     uint32_t num_pids = config.get<uint32_t>("sys.mem.num_pids", 2);
+    
+    //Use multithread?
+    bool multithread = config.get<bool>("sys.mem.multithread", false);
 
     MemObject* mem = nullptr;
     if (type == "Simple") {
@@ -360,7 +363,7 @@ MemObject* BuildMemoryController(Config& config, uint32_t lineSize, uint32_t fre
         string dramSystemIni = config.get<const char*>("sys.mem.systemIni");
         string outputDir = config.get<const char*>("sys.mem.outputDir");
         string traceName = config.get<const char*>("sys.mem.traceName");
-        mem = new DRAMSimMemory(dramTechIni, dramSystemIni, outputDir, traceName, capacity, cpuFreqHz, latency, domain, name, num_pids);
+        mem = new DRAMSimMemory(dramTechIni, dramSystemIni, outputDir, traceName, capacity, cpuFreqHz, latency, domain, name, num_pids, multithread);
     } else if (type == "Detailed") {
         // FIXME(dsm): Don't use a separate config file... see DDRMemory
         g_string mcfg = config.get<const char*>("sys.mem.paramFile", "");
