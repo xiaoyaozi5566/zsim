@@ -1416,6 +1416,141 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 refreshRank = -1;
             if (!foundIssuable) return false;
         }
+        else if (schedulingPolicy == Dynamic)
+        {
+            bool sendingREF = false;
+    		//if the memory controller set the flags signaling that we need to issue a refresh
+    		if (refreshWaiting)
+    		{
+    			bool foundActiveOrTooEarly = false;
+    			//look for an open bank
+    			for (size_t b=0;b<NUM_BANKS;b++)
+    			{
+    				vector<BusPacket *> &queue = getCommandQueue(refreshRank,b);
+    				//checks to make sure that all banks are idle
+    				if (bankStates[refreshRank][b].currentBankState == RowActive)
+    				{
+    					foundActiveOrTooEarly = true;
+    					//if the bank is open, make sure there is nothing else
+    					// going there before we close it
+    					for (size_t j=0;j<queue.size();j++)
+    					{
+    						BusPacket *packet = queue[j];
+    						if (packet->row == bankStates[refreshRank][b].openRowAddress &&
+    								packet->bank == b)
+    						{
+    							if (packet->busPacketType != ACTIVATE && isIssuable(packet))
+    							{
+    								*busPacket = packet;
+    								queue.erase(queue.begin() + j);
+    								sendingREF = true;
+    							}
+    							break;
+    						}
+    					}
+
+    					break;
+    				}
+    				//	NOTE: checks nextActivate time for each bank to make sure tRP is being
+    				//				satisfied.	the next ACT and next REF can be issued at the same
+    				//				point in the future, so just use nextActivate field instead of
+    				//				creating a nextRefresh field
+    				else if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
+    				{
+    					foundActiveOrTooEarly = true;
+    					break;
+    				}
+    			}
+
+    			//if there are no open banks and timing has been met, send out the refresh
+    			//	reset flags and rank pointer
+    			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
+    			{
+    				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);
+    				refreshRank = -1;
+    				refreshWaiting = false;
+    				sendingREF = true;
+    			}
+    		} // refreshWaiting
+
+    		//if we're not sending a REF, proceed as normal
+    		if (!sendingREF)
+    		{
+    			bool foundIssuable = false;
+                unsigned which_domain = 0;
+                unsigned min_issueTime_D = 0;
+                for (size_t i=0;i<num_pids;i++)
+                {
+                    unsigned which_rank = 0;
+                    unsigned min_issueTime_R = 0;
+                    for (size_t j=0;j<NUM_RANKS;j++)
+                    {
+                        vector<BusPacket *> &queue = getCommandQueue(j, i);
+                        if (!queue.empty()) 
+                        {
+                            if (min_issueTime_R == 0)
+                            {
+                                min_issueTime_R = queue[0]->issueTime;
+                                which_rank = j;
+                            }                                
+                            else if (min_issueTime_R > queue[0]->issueTime)
+                            {
+                                min_issueTime_R = queue[0]->issueTime;
+                                which_rank = j;
+                            }
+                        }
+                    }
+                    // there is a request from this domain
+                    if (min_issueTime_R != 0)
+                    {
+                        vector<BusPacket *> &queue = getCommandQueue(which_rank, i);
+                        if (isIssuable(queue[0]))
+                        {
+                            if (min_issueTime_D == 0)
+                            {
+                                min_issueTime_D = min_issueTime_R;
+                                which_domain = i;
+                            }
+                            else if (min_issueTime_D > min_issueTime_R)
+                            {
+                                min_issueTime_D = min_issueTime_R;
+                                which_domain = i;
+                            }
+                        }
+                    }
+                }
+                // there is some request being selected from all domains
+                if (min_issueTime_D != 0)
+                {
+                    unsigned which_rank = 0;
+                    unsigned min_issueTime_R = 0;
+                    for (size_t j=0;j<NUM_RANKS;j++)
+                    {
+                        vector<BusPacket *> &queue = getCommandQueue(j, which_domain);
+                        if (!queue.empty()) 
+                        {
+                            if (min_issueTime_R == 0)
+                            {
+                                min_issueTime_R = queue[0]->issueTime;
+                                which_rank = j;
+                            }                                
+                            else if (min_issueTime_R > queue[0]->issueTime)
+                            {
+                                min_issueTime_R = queue[0]->issueTime;
+                                which_rank = j;
+                            }
+                        }
+                    }
+                    vector<BusPacket *> &queue = getCommandQueue(which_rank, which_domain);
+                    *busPacket = queue[0];
+                    queue.erase(queue.begin());
+                    foundIssuable = true;
+                }
+
+    			//if we couldn't find anything to send, return false
+    			if (!foundIssuable) return false;
+    		}
+        }
         else
         {
             bool sendingREF = false;
@@ -2186,4 +2321,16 @@ unsigned CommandQueue::getRefreshRank()
     }
     else
         return 1000;
+}
+
+void CommandQueue::delay(unsigned domain)
+{
+    for (size_t i=0;i<NUM_RANKS;i++)
+    {
+        vector<BusPacket *> &queue = getCommandQueue(i, domain);
+        for (size_t j=0;j<queue.size();j++)
+        {
+            queue[j]->issueTime = queue[j]->issueTime + num_pids*DYNAMIC_B;
+        }
+    }
 }

@@ -65,6 +65,7 @@ public:
     unsigned srcId;
 	uint64_t physicalAddress;
     uint64_t arrivalTime;
+    unsigned issueTime;
 	void *data;
 
 	//Functions

@@ -80,6 +80,7 @@ public:
 	virtual vector<BusPacket *> &getCommandQueue(unsigned rank, unsigned bank_or_domain);
     unsigned getCurrentDomain();
     unsigned* selectRanks(pair <unsigned, unsigned> * rankRequests, unsigned num_ranks);
+    void delay(unsigned domain);
 
 	//fields
 	

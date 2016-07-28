@@ -146,6 +146,8 @@ extern unsigned RETURN_DELAY;
 extern unsigned TURN_LENGTH;
 extern unsigned WORST_CASE;
 extern unsigned NUM_DIFF_BANKS;
+extern unsigned DYNAMIC_B;
+extern unsigned DYNAMIC_D;
 
 extern unsigned EPOCH_LENGTH;
 
@@ -199,7 +201,8 @@ enum SchedulingPolicy
     RankPar,
     SideChannel,
     Probability,
-    AccessLimit
+    AccessLimit,
+    Dynamic
 };
 
 

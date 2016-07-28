@@ -68,7 +68,8 @@ MemoryController::MemoryController(MemorySystem *parent, unsigned num_pids_, CSV
 		csvOut(csvOut_),
 		totalTransactions(0),
 		refreshRank(0),
-        num_pids(num_pids_)
+        num_pids(num_pids_),
+        num_violations(0)
 {
 	//get handle on parent
 	parentMemorySystem = parent;
@@ -144,6 +145,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 
 	//add to return read data queue
 	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data, bpacket->srcId));
+    returnTransaction.back()->issueTime = bpacket->issueTime - tRCD;
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 
 	// this delete statement saves a mindboggling amount of memory
@@ -559,13 +561,14 @@ void MemoryController::update()
     					newTransactionColumn, newTransactionRow, newTransactionRank,
     					newTransactionBank, transaction->srcId, 0, dramsim_log);
 
-    			//create read or write command and enqueue it
+                ACTcommand->issueTime = transaction->issueTime;
+                //create read or write command and enqueue it
     			BusPacketType bpType = transaction->getBusPacketType();
     			BusPacket *command = new BusPacket(bpType, transaction->address,
     					newTransactionColumn, newTransactionRow, newTransactionRank,
     					newTransactionBank, transaction->srcId, transaction->data, dramsim_log);
-
-
+                    
+                command->issueTime = transaction->issueTime + tRCD;
 
     			commandQueue.enqueue(ACTcommand);
     			commandQueue.enqueue(command);
@@ -684,7 +687,65 @@ void MemoryController::update()
 	}
 
 	//check for outstanding data to return to the CPU
-	if (returnTransaction.size()>0)
+    if (schedulingPolicy == Dynamic)
+    {
+        for (size_t j=0;j<returnTransaction.size();j++)
+        {
+            unsigned returnTime = returnTransaction[j]->issueTime + DYNAMIC_D;
+            unsigned srcId = returnTransaction[j]->srcId;
+            // return this transaction
+            if (returnTime == currentClockCycle)
+            {
+                bool foundMatch=false;
+                unsigned queue_index;
+                if (queuingStructure == PerRankPerDomain)
+                    queue_index = srcId;
+                else
+                    queue_index = 0;
+        		//find the pending read transaction to calculate latency
+        		for (size_t i=0;i<pendingReadTransactions[queue_index].size();i++)
+        		{
+        			if (pendingReadTransactions[queue_index][i]->address == returnTransaction[j]->address)
+        			{
+        				//if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
+        				//	{
+        				//		pendingReadTransactions[i]->print();
+        				//		exit(0);
+        				//	}
+        				unsigned chan,rank,bank,row,col;
+        				addressMapping(returnTransaction[j]->address, num_pids, returnTransaction[j]->srcId, chan,rank,bank,row,col);
+        				insertHistogram(currentClockCycle-pendingReadTransactions[queue_index][i]->timeAdded,rank,bank);
+        				//return latency
+        				returnReadData(pendingReadTransactions[queue_index][i]);
+
+        				delete pendingReadTransactions[queue_index][i];
+        				pendingReadTransactions[queue_index].erase(pendingReadTransactions[queue_index].begin()+i);
+        				foundMatch=true; 
+        				break;
+        			}
+        		}
+		
+        		if (!foundMatch)
+        		{
+        			ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[j]->address<<dec);
+        			abort(); 
+        		}
+        		delete returnTransaction[j];
+        		returnTransaction.erase(returnTransaction.begin()+j);
+                totalTransactions++;
+                break;
+            }
+            else if (returnTime > currentClockCycle)
+            {
+                returnTransaction[j]->issueTime = returnTransaction[j]->issueTime + num_pids*DYNAMIC_B;
+                commandQueue.delay(srcId);
+                num_violations++;
+                if (totalTransactions % 1000 == 0)
+                    printf("total transactions: %ld, num_violations: %d\n", totalTransactions, num_violations);
+            }
+        }
+    }
+	else if (returnTransaction.size()>0)
 	{
 		if (DEBUG_BUS)
 		{
@@ -818,7 +879,24 @@ bool MemoryController::addTransaction(Transaction *trans)
 	{
 		trans->timeAdded = currentClockCycle;
         if (queuingStructure==PerRankPerDomain)
-		    transactionQueues[trans->srcId].push_back(trans);
+        {
+            unsigned temp = currentClockCycle/(num_pids*DYNAMIC_B);
+            unsigned currentIssueTime = temp*num_pids*DYNAMIC_B + trans->srcId*DYNAMIC_B;
+            Transaction *lastTrans = transactionQueues[trans->srcId].back();
+            if (lastTrans != NULL)
+            {
+                unsigned lastIssueTime = lastTrans->issueTime;
+                while (currentIssueTime <= currentClockCycle || currentIssueTime <= lastIssueTime)
+                    currentIssueTime += num_pids*DYNAMIC_B;
+            }
+            else
+            {
+                if (currentIssueTime <= currentClockCycle)
+                    currentIssueTime += num_pids*DYNAMIC_B;
+            }
+            trans->issueTime = currentIssueTime;
+            transactionQueues[trans->srcId].push_back(trans);
+        }
         else
             transactionQueues[0].push_back(trans);
 		return true;

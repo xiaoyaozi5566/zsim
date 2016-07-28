@@ -58,6 +58,7 @@ public:
 	uint64_t address;
 	void *data;
 	uint64_t timeAdded;
+    uint64_t issueTime;
 	uint64_t timeReturned;
 	uint32_t srcId;
 

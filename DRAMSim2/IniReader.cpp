@@ -139,6 +139,10 @@ bool VERIFICATION_OUTPUT;
 
 bool DEBUG_INI_READER=false;
 
+//Dynamic schedule parameters
+unsigned DYNAMIC_B;
+unsigned DYNAMIC_D;
+
 namespace DRAMSim
 {
 RowBufferPolicy rowBufferPolicy;
@@ -203,6 +207,8 @@ static ConfigMap configMap[] =
     DEFINE_UINT_PARAM(TURN_LENGTH,SYS_PARAM),
     DEFINE_UINT_PARAM(WORST_CASE,SYS_PARAM),
     DEFINE_UINT_PARAM(NUM_DIFF_BANKS,SYS_PARAM),
+    DEFINE_UINT_PARAM(DYNAMIC_B,SYS_PARAM),
+    DEFINE_UINT_PARAM(DYNAMIC_D,SYS_PARAM),
 
 	DEFINE_UINT_PARAM(EPOCH_LENGTH,SYS_PARAM),
 	//Power
@@ -717,6 +723,14 @@ void IniReader::InitEnumsFromStrings()
 		{
 			DEBUG("SCHEDULING: Limit Accesses");
 		}       
+    }
+    else if (SCHEDULING_POLICY == "dynamic")
+    {
+        schedulingPolicy = Dynamic;
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("SCHEDULING: Dynamic scheduling");
+		}   
     }
 	else
 	{

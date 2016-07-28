@@ -100,7 +100,7 @@ void addressMapping(uint64_t physicalAddress, unsigned num_pids, uint32_t srcId,
         for (size_t i=0;i<8;i++)
             plaintext[i] = 0;
         uint64_t temp = physicalAddress;
-        if (schedulingPolicy == SideChannel || schedulingPolicy == Probability || schedulingPolicy == AccessLimit) 
+        if (schedulingPolicy == SideChannel || schedulingPolicy == Probability || schedulingPolicy == AccessLimit || schedulingPolicy == Dynamic) 
             temp = temp*(srcId+1);
         for (size_t i=0;i<8;i++)
         {
