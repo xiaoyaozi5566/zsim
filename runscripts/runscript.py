@@ -7,6 +7,7 @@ import time
 zsim_home = "/home/yw438/zsim"
 spec_dir = "/home/yw438/benchmarks"
 parsec_dir = "/home/yw438/parsec/parsec-2.1/pkgs/apps"
+parsec_kernel = "/home/yw438/parsec/parsec-2.1/pkgs/kernels"
 scriptgen_dir = zsim_home + "/scriptgen"
 results_dir = zsim_home + "/results"
 stdout_dir = zsim_home + "/stdout"
@@ -26,6 +27,7 @@ systemIni_mix = "/home/yw438/zsim/DRAMSim2/system.ini.mix"
 systemIni_prob = "/home/yw438/zsim/DRAMSim2/system.ini.prob"
 systemIni_probmix = "/home/yw438/zsim/DRAMSim2/system.ini.probmix"
 systemIni_limit = "/home/yw438/zsim/DRAMSim2/system.ini.limit"
+systemIni_dynamic="/home/yw438/zsim/DRAMSim2/system.ini.dynamic"
 
 # remove astar due to bugs
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
@@ -75,15 +77,29 @@ redirect_input = {
     'leslie3d'   : spec_dir + "/leslie3d.in",
 }
 
+# # parsec simlarge
+# parsecinvoke = {
+#     'blackscholes' : parsec_dir + "/blackscholes/inst/amd64-linux.gcc/bin/blackscholes 4 " + parsec_dir + "/blackscholes/inputs/in_64K.txt " + parsec_dir + "/blackscholes/run/prices.txt",
+#     'bodytrack'    : parsec_dir + "/bodytrack/inst/amd64-linux.gcc/bin/bodytrack " + parsec_dir + "/bodytrack/inputs/sequenceB_4 4 4 4000 5 0 4",
+#     'facesim'      : parsec_dir + "/facesim/inst/amd64-linux.gcc/bin/facesim -timing -threads 4",
+#     'ferret'       : parsec_dir + "/ferret/inst/amd64-linux.gcc/bin/ferret " + parsec_dir + "/ferret/inputs/corel lsh " + parsec_dir + "/ferret/inputs/queries 10 20 4 " + parsec_dir + "/ferret/run/output.txt",
+#     'fluidanimate' : parsec_dir + "/fluidanimate/inst/amd64-linux.gcc/bin/fluidanimate 4 5 " + parsec_dir + "/fluidanimate/inputs/in_300K.fluid " + parsec_dir + "/fluidanimate/run/out.fluid",
+#     'freqmine'     : parsec_dir + "/freqmine/inst/amd64-linux.gcc/bin/freqmine " + parsec_dir + "/freqmine/inputs/kosarak_990k.dat 790",
+#     'swaptions'    : parsec_dir + "/swaptions/inst/amd64-linux.gcc/bin/swaptions -ns 64 -sm 20000 -nt 4",
+#     'vips'         : parsec_dir + "/vips/inst/amd64-linux.gcc/bin/vips im_benchmark " + parsec_dir + "/vips/inputs/bigben_2662x5500.v " + parsec_dir + "/vips/run/output.v",
+# }
+
+# parsec simsmall
 parsecinvoke = {
-    'blackscholes' : parsec_dir + "/blackscholes/inst/amd64-linux.gcc/bin/blackscholes 16 " + parsec_dir + "/blackscholes/inputs/in_64K.txt " + parsec_dir + "/blackscholes/run/prices.txt",
-    'bodytrack'    : parsec_dir + "/bodytrack/inst/amd64-linux.gcc/bin/bodytrack " + parsec_dir + "/bodytrack/inputs/sequenceB_4 4 4 4000 5 0 16",
-    'facesim'      : parsec_dir + "/facesim/inst/amd64-linux.gcc/bin/facesim -timing -threads 16",
-    'ferret'       : parsec_dir + "/ferret/inst/amd64-linux.gcc/bin/ferret " + parsec_dir + "/ferret/inputs/corel lsh " + parsec_dir + "/ferret/inputs/queries 10 20 16 " + parsec_dir + "/ferret/run/output.txt",
-    'fluidanimate' : parsec_dir + "/fluidanimate/inst/amd64-linux.gcc/bin/fluidanimate 16 5 " + parsec_dir + "/fluidanimate/inputs/in_300K.fluid " + parsec_dir + "/fluidanimate/run/out.fluid",
-    'freqmine'     : parsec_dir + "/freqmine/inst/amd64-linux.gcc/bin/freqmine " + parsec_dir + "/freqmine/inputs/kosarak_990k.dat 790",
-    'swaptions'    : parsec_dir + "/swaptions/inst/amd64-linux.gcc/bin/swaptions -ns 64 -sm 20000 -nt 16",
-    'vips'         : parsec_dir + "/vips/inst/amd64-linux.gcc/bin/vips im_benchmark " + parsec_dir + "/vips/inputs/bigben_2662x5500.v " + parsec_dir + "/vips/run/output.v",
+    'blackscholes' : parsec_dir + "/blackscholes/inst/amd64-linux.gcc/bin/blackscholes 4 " + parsec_dir + "/blackscholes/inputs/in_4K.txt " + parsec_dir + "/blackscholes/run/prices.txt",
+    'bodytrack'    : parsec_dir + "/bodytrack/inst/amd64-linux.gcc/bin/bodytrack " + parsec_dir + "/bodytrack/inputs/sequenceB_1 4 1 1000 5 0 4",
+    'facesim'      : parsec_dir + "/facesim/inst/amd64-linux.gcc/bin/facesim -timing -threads 4",
+    'ferret'       : parsec_dir + "/ferret/inst/amd64-linux.gcc/bin/ferret " + parsec_dir + "/ferret/inputs/corel lsh " + parsec_dir + "/ferret/inputs/queries 10 20 4 " + parsec_dir + "/ferret/run/output.txt",
+    'fluidanimate' : parsec_dir + "/fluidanimate/inst/amd64-linux.gcc/bin/fluidanimate 4 5 " + parsec_dir + "/fluidanimate/inputs/in_35K.fluid " + parsec_dir + "/fluidanimate/run/out.fluid",
+    'freqmine'     : parsec_dir + "/freqmine/inst/amd64-linux.gcc/bin/freqmine " + parsec_dir + "/freqmine/inputs/kosarak_250k.dat 220",
+    'swaptions'    : parsec_dir + "/swaptions/inst/amd64-linux.gcc/bin/swaptions -ns 16 -sm 5000 -nt 4",
+    'streamcluster': parsec_kernel + "/streamcluster/inst/amd64-linux.gcc/bin/streamcluster 10 20 32 4096 4096 1000 none " + parsec_kernel + "/streamcluster/run/output.txt 4",
+    'vips'         : parsec_dir + "/vips/inst/amd64-linux.gcc/bin/vips im_benchmark " + parsec_dir + "/vips/inputs/pomegranate_1600x1200.v " + parsec_dir + "/vips/run/output.v",
 }
 
 bench_name = {
@@ -277,14 +293,15 @@ multiprog_2 = [
 ]
 
 parsec_8 = [
-    # ['blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes'],
-    ['bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack'],   
-    ['facesim', 'facesim', 'facesim', 'facesim', 'facesim', 'facesim', 'facesim', 'facesim'],     
-    # ['ferret', 'ferret', 'ferret', 'ferret', 'ferret', 'ferret', 'ferret', 'ferret'],
-    # ['fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate'],
-    ['freqmine', 'freqmine', 'freqmine', 'freqmine', 'freqmine', 'freqmine', 'freqmine', 'freqmine'],    
-    # ['swaptions', 'swaptions', 'swaptions', 'swaptions', 'swaptions', 'swaptions', 'swaptions', 'swaptions'],
-    ['vips', 'vips', 'vips', 'vips', 'vips', 'vips', 'vips', 'vips']        
+    ['blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes'],
+    ['bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack'],
+    ['facesim', 'facesim', 'facesim', 'facesim', 'facesim', 'facesim', 'facesim', 'facesim'],
+    ['ferret', 'ferret', 'ferret', 'ferret', 'ferret', 'ferret', 'ferret', 'ferret'],
+    ['fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate'],
+    ['freqmine', 'freqmine', 'freqmine', 'freqmine', 'freqmine', 'freqmine', 'freqmine', 'freqmine'],
+    ['swaptions', 'swaptions', 'swaptions', 'swaptions', 'swaptions', 'swaptions', 'swaptions', 'swaptions'],
+    ['streamcluster', 'streamcluster', 'streamcluster', 'streamcluster', 'streamcluster', 'streamcluster', 'streamcluster', 'streamcluster'],
+    ['vips', 'vips', 'vips', 'vips', 'vips', 'vips', 'vips', 'vips']
 ]
 
 if not os.path.exists(scriptgen_dir):
@@ -370,8 +387,8 @@ def multiprogs_DRAMSim2():
             if (workload[i] in redirect_input.keys()):
                 config += "    input = \"" + redirect_input[workload[i]] + "\";\n"
             config += "    startFastForwarded = True;\n"
-            config += "    ffiPoints = \"1000000000 10000000000\";\n"
-            config += "    dumpInstrs = 100000000L;\n"
+            config += "    ffiPoints = \"10000 100000000\";\n"
+            config += "    dumpInstrs = 10000L;\n"
             config += "};\n\n"
         
         config_file.write("%s\n" % config)
@@ -399,8 +416,8 @@ def multiprogs_DRAMSim2():
         submit_file.write("%s\n" % env)
         submit_file.close()
         
-        os.system("condor_submit " + scriptgen_dir + "/" + filename)
-        time.sleep(5)
+        # os.system("condor_submit " + scriptgen_dir + "/" + filename)
+        # time.sleep(5)
 
 def multiprogs_parsec():
     for workload in workloads:
@@ -422,8 +439,8 @@ def multiprogs_parsec():
         config_file = open(scriptgen_dir + "/" + filename, "w")
         config =  "sim = {\n"
         config += "    phaseLength = 10000;\n"
-        config += "    maxProcEventualDumps = " + str(len(workload)) + ";\n"
-        config += "    statsPhaseInterval = 1;\n};\n\n"
+        # config += "    maxProcEventualDumps = " + str(len(workload)) + ";\n"
+        config += "    statsPhaseInterval = 10000;\n};\n\n"
         config += "sys = {\n"
         config += "    frequency = 1200;\n"
         config += "    lineSize = 64;\n"
@@ -442,15 +459,15 @@ def multiprogs_parsec():
         config += "            parent = \"l2\";\n"
         config += "        };\n\n"
         config += "        l2 = {\n"
-        config += "            size = " + str(len(workload)*1048576) + ";\n"
+        config += "            size = " + str(len(workload)/4*1048576) + ";\n"
         config += "            caches = 1;\n"
         config += "            array = {\n"
-        config += "                ways = " + str(len(workload)*8) + ";\n"
+        config += "                ways = " + str(len(workload)/4*8) + ";\n"
         config += "                hash = \"None\";\n"
         config += "            };\n"
-        config += "            repl = {\n"
-        config += "                type = \"WayPart\";\n"
-        config += "            };\n"
+        # config += "            repl = {\n"
+        # config += "                type = \"WayPart\";\n"
+        # config += "            };\n"
         config += "            parent = \"mem\";\n"
         config += "        };\n\n"
         config += "    };\n"
@@ -458,7 +475,8 @@ def multiprogs_parsec():
         config += "        controllers = 1;\n"
         config += "        latency = 10;\n"
         config += "        capacityMB = 32768\n"
-        config += "        num_pids = " + str(len(workload)) + ";\n" 
+        config += "        num_pids = " + str(len(workload)/4) + ";\n" 
+        config += "        multithread = True;\n"
         config += "        type = \"DRAMSim\";\n"
         config += "        techIni = \"" + techIni + "\";\n"
         config += "        systemIni = \"" + systemIni + "\";\n"
@@ -466,15 +484,14 @@ def multiprogs_parsec():
         config += "        traceName = \"" + name + "\";\n"
         config += "    };\n"
         config += "};\n\n"
-        for i in range(len(workload)):
+        for i in range(len(workload)/4):
+            j = i*4
             config += "process" + str(i) + " = {\n"
-            config += "    mask = \"" + str(i) + "\";\n"
+            config += "    mask = \"" + str(j) + " " + str(j+1) + " " + str(j+2) + " " + str(j+3) + " " + "\";\n"
             config += "    command = \"" + parsecinvoke[workload[i]] + "\";\n"
             if (workload[i] in redirect_input.keys()):
                 config += "    input = \"" + redirect_input[workload[i]] + "\";\n"
             config += "    startFastForwarded = True;\n"
-            config += "    ffiPoints = \"1000000000 10000000000\";\n"
-            config += "    dumpInstrs = 100000000L;\n"
             config += "};\n\n"
         
         config_file.write("%s\n" % config)
@@ -657,7 +674,6 @@ def singleprogs_parsec():
         if (workload in redirect_input.keys()):
             config += "    input = \"" + redirect_input[workload] + "\";\n"
         config += "    startFastForwarded = True;\n"
-        config += "    ffiPoints = \"1000000000 100000000\";\n"
         config += "};\n\n"
         
         config_file.write("%s\n" % config)
@@ -688,9 +704,9 @@ def singleprogs_parsec():
         os.system("condor_submit " + scriptgen_dir + "/" + filename)
                 
 # call the function        
-folder = "single_prog_parsec"
-systemIni = systemIni_insec
-singleprogs_parsec()
+# folder = "single_prog_parsec"
+# systemIni = systemIni_insec
+# singleprogs_parsec()
 #
 # # Two programs
 # workloads = multiprog_2
@@ -1034,7 +1050,7 @@ singleprogs_parsec()
 # multiprogs_DRAMSim2()
 
 # Eight programs
-# workloads = multiprog_8
+workloads = multiprog_8
 # # baseline scheme
 # folder = "insec_diffbench_8"
 #
@@ -1081,9 +1097,129 @@ singleprogs_parsec()
 # multiprogs_DRAMSim2()
 
 # Eight programs
-workloads = parsec_8
-# baseline scheme
-folder = "parsec_insec_8"
+# workloads = parsec_8
+# # baseline scheme
+# folder = "parsec_insec_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_insec
+# multiprogs_parsec()
+
+# # SecMem
+# folder = "parsec_sec_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_sec2banks
+# multiprogs_parsec()
+#
+# # FS
+# folder = "parsec_fs_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_fs
+# multiprogs_parsec()
+#
+# # Random address mapping
+# folder = "parsec_secrand_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_secrand
+# multiprogs_parsec()
+#
+# # Interleaving three banks in one turn
+# folder = "parsec_sec3banks_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_sec
+# multiprogs_parsec()
+
+# # bank partitioning
+# folder = "parsec_bankpar_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_bankpar
+# multiprogs_parsec()
+#
+# # rank partitioning
+# folder = "parsec_rankpar_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_rankpar
+# multiprogs_parsec()
+
+# # side channel protection
+# folder = "parsec_relax_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_relax
+# multiprogs_parsec()
+
+# Dynamic scheduling
+folder = "dynamic_8"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)
@@ -1094,110 +1230,5 @@ if not os.path.exists(stdout_dir + "/" + folder):
 if not os.path.exists(stderr_dir + "/" + folder):
     os.makedirs(stderr_dir + "/" + folder)
 
-systemIni = systemIni_insec
-multiprogs_parsec()
-
-# SecMem
-folder = "parsec_sec_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_sec2banks
-multiprogs_parsec()
-
-# FS
-folder = "parsec_fs_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_fs
-multiprogs_parsec()
-
-# Random address mapping
-folder = "parsec_secrand_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_secrand
-multiprogs_parsec()
-
-# Interleaving three banks in one turn
-folder = "parsec_sec3banks_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_sec
-multiprogs_parsec()
-
-# bank partitioning
-folder = "parsec_bankpar_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_bankpar
-multiprogs_parsec()
-
-# rank partitioning
-folder = "parsec_rankpar_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_rankpar
-multiprogs_parsec()
-
-# side channel protection
-folder = "parsec_relax_8"
-
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
-
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
-
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_relax
-multiprogs_parsec()
+systemIni = systemIni_dynamic
+multiprogs_DRAMSim2()
