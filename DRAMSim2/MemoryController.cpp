@@ -747,10 +747,10 @@ void MemoryController::update()
                 for (size_t i=0;i<transactionQueues[srcId].size();i++)
                     transactionQueues[srcId][i]->issueTime += num_pids*DYNAMIC_B;
                 num_violations++;
-                if (totalTransactions % 1000 == 0)
-                    printf("total transactions: %ld, num_violations: %d\n", totalTransactions, num_violations);
             }
         }
+        if (totalTransactions % 1000 == 0)
+            printf("total transactions: %ld, num_violations: %d\n", totalTransactions, num_violations);
     }
 	else if (returnTransaction.size()>0)
 	{
