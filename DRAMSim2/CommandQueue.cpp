@@ -2166,7 +2166,7 @@ void CommandQueue::nextRankAndBank(unsigned &rank, unsigned &bank)
 			}
 		}
     }
-    else if (schedulingPolicy == SideChannel)
+    else if (schedulingPolicy == SideChannel || schedulingPolicy == Dynamic)
     {
 		bank++;
 		if (bank == NUM_BANKS)

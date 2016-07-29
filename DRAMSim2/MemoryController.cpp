@@ -112,7 +112,8 @@ MemoryController::MemoryController(MemorySystem *parent, unsigned num_pids_, CSV
 	writeDataToSend.reserve(NUM_RANKS);
 	refreshCountdown.reserve(NUM_RANKS);
 
-	//Power related packets
+	lastIssueTime = vector<uint64_t>(num_pids, 0);
+    //Power related packets
 	backgroundEnergy = vector <uint64_t >(NUM_RANKS,0);
 	burstEnergy = vector <uint64_t> (NUM_RANKS,0);
 	actpreEnergy = vector <uint64_t> (NUM_RANKS,0);
@@ -735,10 +736,16 @@ void MemoryController::update()
                 totalTransactions++;
                 break;
             }
-            else if (returnTime > currentClockCycle)
+            else if (returnTime < currentClockCycle)
             {
                 returnTransaction[j]->issueTime = returnTransaction[j]->issueTime + num_pids*DYNAMIC_B;
+                // update requests in command queue
                 commandQueue.delay(srcId);
+                // update future requests
+                lastIssueTime[srcId] += num_pids*DYNAMIC_B;
+                // update requests in transaction queue
+                for (size_t i=0;i<transactionQueues[srcId].size();i++)
+                    transactionQueues[srcId][i]->issueTime += num_pids*DYNAMIC_B;
                 num_violations++;
                 if (totalTransactions % 1000 == 0)
                     printf("total transactions: %ld, num_violations: %d\n", totalTransactions, num_violations);
@@ -882,18 +889,13 @@ bool MemoryController::addTransaction(Transaction *trans)
         {
             unsigned temp = currentClockCycle/(num_pids*DYNAMIC_B);
             unsigned currentIssueTime = temp*num_pids*DYNAMIC_B + trans->srcId*DYNAMIC_B;
-            Transaction *lastTrans = transactionQueues[trans->srcId].back();
-            if (lastTrans != NULL)
+            
+            while(currentIssueTime <= currentClockCycle || currentIssueTime <= lastIssueTime[trans->srcId])
             {
-                unsigned lastIssueTime = lastTrans->issueTime;
-                while (currentIssueTime <= currentClockCycle || currentIssueTime <= lastIssueTime)
-                    currentIssueTime += num_pids*DYNAMIC_B;
+                currentIssueTime += num_pids*DYNAMIC_B;
             }
-            else
-            {
-                if (currentIssueTime <= currentClockCycle)
-                    currentIssueTime += num_pids*DYNAMIC_B;
-            }
+            lastIssueTime[trans->srcId] = currentIssueTime;
+            
             trans->issueTime = currentIssueTime;
             transactionQueues[trans->srcId].push_back(trans);
         }

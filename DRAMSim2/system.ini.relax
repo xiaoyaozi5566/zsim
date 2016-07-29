@@ -18,6 +18,8 @@ QUEUING_STRUCTURE=per_rank_per_domain			;per_rank or per_rank_per_bank
 USE_RANDOM_ADDR=true                            ;use random address mapping
 USE_BETTER_SCHEDULE=false                        ;use better schedule
 USE_MIX=false                                     ;use mix policy (side_channel and sec_mem)
+DYNAMIC_B=6;  
+DYNAMIC_D=30;
 
 ;for true/false, please use all lowercase
 DEBUG_TRANS_Q=false

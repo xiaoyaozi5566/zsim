@@ -124,6 +124,7 @@ private:
 	unsigned refreshRank;
     unsigned num_pids;
     unsigned num_violations;
+    vector<uint64_t> lastIssueTime;
 	
 public:
 	// energy values are per rank -- SST uses these directly, so make these public 
