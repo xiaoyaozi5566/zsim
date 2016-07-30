@@ -731,6 +731,7 @@ void MemoryController::update()
         			ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[j]->address<<dec);
         			abort(); 
         		}
+                // if (srcId==7 && currentClockCycle > 50000000) printf("Addr: %lx returned @ cycle %d\n", returnTransaction[j]->address, currentClockCycle);
         		delete returnTransaction[j];
         		returnTransaction.erase(returnTransaction.begin()+j);
                 totalTransactions++;
@@ -746,11 +747,18 @@ void MemoryController::update()
                 // update requests in transaction queue
                 for (size_t i=0;i<transactionQueues[srcId].size();i++)
                     transactionQueues[srcId][i]->issueTime += num_pids*DYNAMIC_B;
+                // update respones in response queue
+                for (size_t i=j+1;i<returnTransaction.size();i++)
+                {
+                    if (returnTransaction[i]->srcId == srcId)
+                        returnTransaction[i]->issueTime += num_pids*DYNAMIC_B;
+                }
                 num_violations++;
             }
         }
         if (totalTransactions % 1000 == 0)
             printf("total transactions: %ld, num_violations: %d\n", totalTransactions, num_violations);
+        
     }
 	else if (returnTransaction.size()>0)
 	{
@@ -801,6 +809,7 @@ void MemoryController::update()
     			ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[0]->address<<dec);
     			abort(); 
     		}
+            // if (srcId==7 && currentClockCycle > 50000000) printf("Addr: %lx returned @ cycle %d\n", returnTransaction[0]->address, currentClockCycle);
     		delete returnTransaction[0];
     		returnTransaction.erase(returnTransaction.begin());
         }
