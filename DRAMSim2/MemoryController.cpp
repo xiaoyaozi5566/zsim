@@ -687,7 +687,7 @@ void MemoryController::update()
 		}
 	}
 
-	//check for outstanding data to return to the CPU
+    //check for outstanding data to return to the CPU
     if (schedulingPolicy == Dynamic)
     {
         for (size_t j=0;j<returnTransaction.size();j++)
@@ -703,37 +703,37 @@ void MemoryController::update()
                     queue_index = srcId;
                 else
                     queue_index = 0;
-        		//find the pending read transaction to calculate latency
-        		for (size_t i=0;i<pendingReadTransactions[queue_index].size();i++)
-        		{
-        			if (pendingReadTransactions[queue_index][i]->address == returnTransaction[j]->address)
-        			{
-        				//if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
-        				//	{
-        				//		pendingReadTransactions[i]->print();
-        				//		exit(0);
-        				//	}
-        				unsigned chan,rank,bank,row,col;
-        				addressMapping(returnTransaction[j]->address, num_pids, returnTransaction[j]->srcId, chan,rank,bank,row,col);
-        				insertHistogram(currentClockCycle-pendingReadTransactions[queue_index][i]->timeAdded,rank,bank);
-        				//return latency
-        				returnReadData(pendingReadTransactions[queue_index][i]);
+                //find the pending read transaction to calculate latency
+                for (size_t i=0;i<pendingReadTransactions[queue_index].size();i++)
+                {
+                    if (pendingReadTransactions[queue_index][i]->address == returnTransaction[j]->address)
+                    {
+                        //if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
+                        //    {
+                        //        pendingReadTransactions[i]->print();
+                        //        exit(0);
+                        //    }
+                        unsigned chan,rank,bank,row,col;
+                        addressMapping(returnTransaction[j]->address, num_pids, returnTransaction[j]->srcId, chan,rank,bank,row,col);
+                        insertHistogram(currentClockCycle-pendingReadTransactions[queue_index][i]->timeAdded,rank,bank);
+                        //return latency
+                        returnReadData(pendingReadTransactions[queue_index][i]);
 
-        				delete pendingReadTransactions[queue_index][i];
-        				pendingReadTransactions[queue_index].erase(pendingReadTransactions[queue_index].begin()+i);
-        				foundMatch=true; 
-        				break;
-        			}
-        		}
-		
-        		if (!foundMatch)
-        		{
-        			ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[j]->address<<dec);
-        			abort(); 
-        		}
+                        delete pendingReadTransactions[queue_index][i];
+                        pendingReadTransactions[queue_index].erase(pendingReadTransactions[queue_index].begin()+i);
+                        foundMatch=true;
+                        break;
+                    }
+                }
+
+                if (!foundMatch)
+                {
+                    ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[j]->address<<dec);
+                    abort();
+                }
                 // if (srcId==7 && currentClockCycle > 50000000) printf("Addr: %lx returned @ cycle %d\n", returnTransaction[j]->address, currentClockCycle);
-        		delete returnTransaction[j];
-        		returnTransaction.erase(returnTransaction.begin()+j);
+                delete returnTransaction[j];
+                returnTransaction.erase(returnTransaction.begin()+j);
                 totalTransactions++;
                 break;
             }
@@ -758,7 +758,7 @@ void MemoryController::update()
         }
         if (totalTransactions % 1000 == 0)
             printf("total transactions: %ld, num_violations: %d\n", totalTransactions, num_violations);
-        
+
     }
 	else if (returnTransaction.size()>0)
 	{

@@ -387,8 +387,8 @@ def multiprogs_DRAMSim2():
             if (workload[i] in redirect_input.keys()):
                 config += "    input = \"" + redirect_input[workload[i]] + "\";\n"
             config += "    startFastForwarded = True;\n"
-            config += "    ffiPoints = \"10000 100000000\";\n"
-            config += "    dumpInstrs = 10000L;\n"
+            config += "    ffiPoints = \"1000000000 100000000000\";\n"
+            config += "    dumpInstrs = 100000000L;\n"
             config += "};\n\n"
         
         config_file.write("%s\n" % config)
@@ -416,8 +416,8 @@ def multiprogs_DRAMSim2():
         submit_file.write("%s\n" % env)
         submit_file.close()
         
-        # os.system("condor_submit " + scriptgen_dir + "/" + filename)
-        # time.sleep(5)
+        os.system("condor_submit " + scriptgen_dir + "/" + filename)
+        time.sleep(5)
 
 def multiprogs_parsec():
     for workload in workloads:
@@ -1078,7 +1078,7 @@ workloads = multiprog_8
 # if not os.path.exists(stderr_dir + "/" + folder):
 #     os.makedirs(stderr_dir + "/" + folder)
 #
-# systemIni = systemIni_secrand
+# systemIni = systemIni_sec2banks
 # multiprogs_DRAMSim2()
 
 # # FS
@@ -1219,7 +1219,7 @@ workloads = multiprog_8
 # multiprogs_parsec()
 
 # Dynamic scheduling
-folder = "dynamic_8"
+folder = "dynamic_18_43"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)

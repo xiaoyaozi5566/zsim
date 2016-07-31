@@ -1419,64 +1419,67 @@ bool CommandQueue::pop(BusPacket **busPacket)
         else if (schedulingPolicy == Dynamic)
         {
             bool sendingREF = false;
-    		//if the memory controller set the flags signaling that we need to issue a refresh
-    		if (refreshWaiting)
-    		{
-    			bool foundActiveOrTooEarly = false;
-    			//look for an open bank
-    			for (size_t b=0;b<NUM_BANKS;b++)
-    			{
-    				vector<BusPacket *> &queue = getCommandQueue(refreshRank,b);
-    				//checks to make sure that all banks are idle
-    				if (bankStates[refreshRank][b].currentBankState == RowActive)
-    				{
-    					foundActiveOrTooEarly = true;
-    					//if the bank is open, make sure there is nothing else
-    					// going there before we close it
-    					for (size_t j=0;j<queue.size();j++)
-    					{
-    						BusPacket *packet = queue[j];
-    						if (packet->row == bankStates[refreshRank][b].openRowAddress &&
-    								packet->bank == b)
-    						{
-    							if (packet->busPacketType != ACTIVATE && isIssuable(packet))
-    							{
-    								*busPacket = packet;
-    								queue.erase(queue.begin() + j);
-    								sendingREF = true;
-    							}
-    							break;
-    						}
-    					}
+            //if the memory controller set the flags signaling that we need to issue a refresh
+            if (refreshWaiting)
+            {
+                bool foundActiveOrTooEarly = false;
+                //look for an open bank
+                for (size_t b=0;b<NUM_BANKS;b++)
+                {
+                    //checks to make sure that all banks are idle
+                    if (bankStates[refreshRank][b].currentBankState == RowActive)
+                    {
+                        foundActiveOrTooEarly = true;
+                        //if the bank is open, make sure there is nothing else
+                        // going there before we close it
+                        for (size_t i=0;i<num_pids;i++)
+                        {
+                            vector<BusPacket *> &queue = getCommandQueue(refreshRank,i);
+                            if (!queue.empty())
+                            {
+                                BusPacket *packet = queue[0];
+                                if (packet->row == bankStates[refreshRank][b].openRowAddress &&
+                                        packet->bank == b)
+                                {
+                                    if (packet->busPacketType != ACTIVATE && isIssuable(packet))
+                                    {
+                                        *busPacket = packet;
+                                        queue.erase(queue.begin());
+                                        sendingREF = true;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        break;
+                    }
+                    //    NOTE: checks nextActivate time for each bank to make sure tRP is being
+                    //                satisfied.    the next ACT and next REF can be issued at the same
+                    //                point in the future, so just use nextActivate field instead of
+                    //                creating a nextRefresh field
+                    else if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
+                    {
+                        foundActiveOrTooEarly = true;
+                        break;
+                    }
+                }
 
-    					break;
-    				}
-    				//	NOTE: checks nextActivate time for each bank to make sure tRP is being
-    				//				satisfied.	the next ACT and next REF can be issued at the same
-    				//				point in the future, so just use nextActivate field instead of
-    				//				creating a nextRefresh field
-    				else if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
-    				{
-    					foundActiveOrTooEarly = true;
-    					break;
-    				}
-    			}
+                //if there are no open banks and timing has been met, send out the refresh
+                //    reset flags and rank pointer
+                if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
+                {
+                    *busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);
+                    refreshRank = -1;
+                    refreshWaiting = false;
+                    sendingREF = true;
+                }
+            } // refreshWaiting
 
-    			//if there are no open banks and timing has been met, send out the refresh
-    			//	reset flags and rank pointer
-    			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
-    			{
-    				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);
-    				refreshRank = -1;
-    				refreshWaiting = false;
-    				sendingREF = true;
-    			}
-    		} // refreshWaiting
-
-    		//if we're not sending a REF, proceed as normal
-    		if (!sendingREF)
-    		{
-    			bool foundIssuable = false;
+            //if we're not sending a REF, proceed as normal
+            if (!sendingREF)
+            {
+                bool foundIssuable = false;
                 unsigned which_domain = 0;
                 unsigned min_issueTime_D = 0;
                 for (size_t i=0;i<num_pids;i++)
@@ -1486,13 +1489,13 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     for (size_t j=0;j<NUM_RANKS;j++)
                     {
                         vector<BusPacket *> &queue = getCommandQueue(j, i);
-                        if (!queue.empty()) 
+                        if (!queue.empty())
                         {
                             if (min_issueTime_R == 0)
                             {
                                 min_issueTime_R = queue[0]->issueTime;
                                 which_rank = j;
-                            }                                
+                            }
                             else if (min_issueTime_R > queue[0]->issueTime)
                             {
                                 min_issueTime_R = queue[0]->issueTime;
@@ -1527,13 +1530,13 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     for (size_t j=0;j<NUM_RANKS;j++)
                     {
                         vector<BusPacket *> &queue = getCommandQueue(j, which_domain);
-                        if (!queue.empty()) 
+                        if (!queue.empty())
                         {
                             if (min_issueTime_R == 0)
                             {
                                 min_issueTime_R = queue[0]->issueTime;
                                 which_rank = j;
-                            }                                
+                            }
                             else if (min_issueTime_R > queue[0]->issueTime)
                             {
                                 min_issueTime_R = queue[0]->issueTime;
@@ -1547,9 +1550,9 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     foundIssuable = true;
                 }
 
-    			//if we couldn't find anything to send, return false
-    			if (!foundIssuable) return false;
-    		}
+                //if we couldn't find anything to send, return false
+                if (!foundIssuable) return false;
+            }
         }
         else
         {
