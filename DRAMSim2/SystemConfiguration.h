@@ -58,7 +58,7 @@
 // #define BTR_DELAY 6
 // #define RETURN_DELAY 56
 // #define TURN_LENGTH 54
-// #define WORST_CASE 60
+#define B_WORST 43
 
 extern std::ofstream cmd_verify_out; //used by BusPacket.cpp if VERIFICATION_OUTPUT is enabled
 //extern std::ofstream visDataOut;

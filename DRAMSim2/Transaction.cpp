@@ -56,6 +56,7 @@ Transaction::Transaction(const Transaction &t)
 	  , data(NULL)
 	  , timeAdded(t.timeAdded)
       , issueTime(t.issueTime)
+      , w_issueTime(t.w_issueTime)
 	  , timeReturned(t.timeReturned)
 	  , srcId(t.srcId)
 {

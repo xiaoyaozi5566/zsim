@@ -66,6 +66,7 @@ public:
 	uint64_t physicalAddress;
     uint64_t arrivalTime;
     unsigned issueTime;
+    unsigned w_issueTime;
 	void *data;
 
 	//Functions

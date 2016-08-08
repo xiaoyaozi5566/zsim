@@ -125,6 +125,9 @@ private:
     unsigned num_pids;
     unsigned num_violations;
     vector<uint64_t> lastIssueTime;
+    vector<uint64_t> lastWorstTime;
+    vector<uint64_t> perDomainTrans;
+    vector<uint64_t> perDomainVios;
 	
 public:
 	// energy values are per rank -- SST uses these directly, so make these public 

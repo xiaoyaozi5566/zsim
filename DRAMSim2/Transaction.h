@@ -59,6 +59,8 @@ public:
 	void *data;
 	uint64_t timeAdded;
     uint64_t issueTime;
+    //worst case issue time
+    uint64_t w_issueTime;
 	uint64_t timeReturned;
 	uint32_t srcId;
 

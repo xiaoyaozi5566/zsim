@@ -113,6 +113,9 @@ MemoryController::MemoryController(MemorySystem *parent, unsigned num_pids_, CSV
 	refreshCountdown.reserve(NUM_RANKS);
 
 	lastIssueTime = vector<uint64_t>(num_pids, 0);
+    lastWorstTime = vector<uint64_t>(num_pids, 0);
+	perDomainTrans = vector<uint64_t>(num_pids, 0);
+    perDomainVios = vector<uint64_t>(num_pids, 0);
     //Power related packets
 	backgroundEnergy = vector <uint64_t >(NUM_RANKS,0);
 	burstEnergy = vector <uint64_t> (NUM_RANKS,0);
@@ -146,7 +149,11 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 
 	//add to return read data queue
 	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data, bpacket->srcId));
-    returnTransaction.back()->issueTime = bpacket->issueTime - tRCD;
+    // if (perDomainVios[bpacket->srcId] >= 3)
+    //     returnTransaction.back()->issueTime = bpacket->w_issueTime - tRCD;
+    // else
+        returnTransaction.back()->issueTime = bpacket->issueTime - tRCD;
+    returnTransaction.back()->w_issueTime = bpacket->w_issueTime - tRCD;
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 
 	// this delete statement saves a mindboggling amount of memory
@@ -563,6 +570,7 @@ void MemoryController::update()
     					newTransactionBank, transaction->srcId, 0, dramsim_log);
 
                 ACTcommand->issueTime = transaction->issueTime;
+                ACTcommand->w_issueTime = transaction->w_issueTime;
                 //create read or write command and enqueue it
     			BusPacketType bpType = transaction->getBusPacketType();
     			BusPacket *command = new BusPacket(bpType, transaction->address,
@@ -570,6 +578,7 @@ void MemoryController::update()
     					newTransactionBank, transaction->srcId, transaction->data, dramsim_log);
                     
                 command->issueTime = transaction->issueTime + tRCD;
+                command->w_issueTime = transaction->w_issueTime + tRCD;
 
     			commandQueue.enqueue(ACTcommand);
     			commandQueue.enqueue(command);
@@ -731,34 +740,57 @@ void MemoryController::update()
                     ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[j]->address<<dec);
                     abort();
                 }
-                // if (srcId==7 && currentClockCycle > 50000000) printf("Addr: %lx returned @ cycle %d\n", returnTransaction[j]->address, currentClockCycle);
+                // printf("Addr: %lx from domain %d returned @ cycle %d\n", returnTransaction[j]->address, srcId, currentClockCycle);
                 delete returnTransaction[j];
                 returnTransaction.erase(returnTransaction.begin()+j);
                 totalTransactions++;
+                perDomainTrans[srcId]++;
+                if (totalTransactions % 1000 == 0)
+                {
+                    printf("total transactions: %ld, num_violations: %d\n", totalTransactions, num_violations);
+                    for (size_t i=0;i<num_pids;i++)
+                    {
+                        printf("domain %ld violations: %ld\n", i, perDomainVios[i]);
+                        // printf("domain %ld requests: %d\n", i, perDomainTrans[i]);
+                    }
+                }
+                // if (perDomainTrans[srcId] == 100000)
+                // {
+                //     perDomainTrans[srcId] = 0;
+                //     perDomainVios[srcId] = 0;
+                // }
                 break;
             }
             else if (returnTime < currentClockCycle)
             {
-                returnTransaction[j]->issueTime = returnTransaction[j]->issueTime + num_pids*DYNAMIC_B;
+                unsigned adjust_delay = DYNAMIC_D;
+                returnTransaction[j]->issueTime += adjust_delay;
                 // update requests in command queue
-                commandQueue.delay(srcId);
+                commandQueue.delay(srcId, adjust_delay);
                 // update future requests
-                lastIssueTime[srcId] += num_pids*DYNAMIC_B;
+                lastIssueTime[srcId] += adjust_delay;
                 // update requests in transaction queue
                 for (size_t i=0;i<transactionQueues[srcId].size();i++)
-                    transactionQueues[srcId][i]->issueTime += num_pids*DYNAMIC_B;
+                    transactionQueues[srcId][i]->issueTime += adjust_delay;
                 // update respones in response queue
                 for (size_t i=j+1;i<returnTransaction.size();i++)
                 {
                     if (returnTransaction[i]->srcId == srcId)
-                        returnTransaction[i]->issueTime += num_pids*DYNAMIC_B;
+                        returnTransaction[i]->issueTime += adjust_delay;
                 }
+                for (size_t i=0;i<NUM_RANKS;i++)
+                {
+                    vector<BusPacket *> readReturnPacket = (*ranks)[i]->readReturnPacket;
+                    for (size_t k=0;k<readReturnPacket.size();k++)
+                    {
+                        if (readReturnPacket[k]->srcId == srcId)
+                            readReturnPacket[k]->issueTime += adjust_delay;
+                    }
+                }
+                perDomainVios[srcId]++;
                 num_violations++;
             }
         }
-        if (totalTransactions % 1000 == 0)
-            printf("total transactions: %ld, num_violations: %d\n", totalTransactions, num_violations);
-
     }
 	else if (returnTransaction.size()>0)
 	{
@@ -896,6 +928,7 @@ bool MemoryController::addTransaction(Transaction *trans)
 		trans->timeAdded = currentClockCycle;
         if (queuingStructure==PerRankPerDomain)
         {
+            // calculate expected issue time
             unsigned temp = currentClockCycle/(num_pids*DYNAMIC_B);
             unsigned currentIssueTime = temp*num_pids*DYNAMIC_B + trans->srcId*DYNAMIC_B;
             
@@ -903,9 +936,32 @@ bool MemoryController::addTransaction(Transaction *trans)
             {
                 currentIssueTime += num_pids*DYNAMIC_B;
             }
-            lastIssueTime[trans->srcId] = currentIssueTime;
-            
+            lastIssueTime[trans->srcId] = currentIssueTime;         
             trans->issueTime = currentIssueTime;
+            // calculate worst issue time
+            unsigned worstIssueTime;
+            if (lastWorstTime[trans->srcId] == 0)
+                worstIssueTime = trans->srcId*B_WORST;
+            else
+            {
+                worstIssueTime = lastWorstTime[trans->srcId] + num_pids*B_WORST;
+                unsigned temp0 = worstIssueTime/(REFRESH_PERIOD/tCK/NUM_RANKS);
+                unsigned temp1 = lastWorstTime[trans->srcId]/(REFRESH_PERIOD/tCK/NUM_RANKS);
+                if (temp0 > temp1)
+                    worstIssueTime += tRFC;
+            }
+            temp = worstIssueTime;
+            while (worstIssueTime <= currentClockCycle || worstIssueTime <= currentIssueTime)
+            {
+                worstIssueTime += num_pids*B_WORST;
+                if (worstIssueTime/(REFRESH_PERIOD/tCK/NUM_RANKS) > temp/(REFRESH_PERIOD/tCK/NUM_RANKS))
+                    worstIssueTime += tRFC;
+                temp = worstIssueTime;
+            }
+            lastWorstTime[trans->srcId] = worstIssueTime;
+            trans->w_issueTime = worstIssueTime;
+            
+            // printf("addr: %lx, domain: %d, issue_time: %d, w_time: %d\n", trans->address, trans->srcId, currentIssueTime, worstIssueTime);
             transactionQueues[trans->srcId].push_back(trans);
         }
         else

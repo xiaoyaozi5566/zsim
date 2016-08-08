@@ -93,6 +93,7 @@ redirect_input = {
 parsecinvoke = {
     'blackscholes' : parsec_dir + "/blackscholes/inst/amd64-linux.gcc/bin/blackscholes 4 " + parsec_dir + "/blackscholes/inputs/in_4K.txt " + parsec_dir + "/blackscholes/run/prices.txt",
     'bodytrack'    : parsec_dir + "/bodytrack/inst/amd64-linux.gcc/bin/bodytrack " + parsec_dir + "/bodytrack/inputs/sequenceB_1 4 1 1000 5 0 4",
+    'canneal'      : parsec_kernel + "/canneal/inst/amd64-linux.gcc/bin/canneal 4 10000 2000 " + parsec_kernel + "/canneal/inputs/100000.nets 32",
     'facesim'      : parsec_dir + "/facesim/inst/amd64-linux.gcc/bin/facesim -timing -threads 4",
     'ferret'       : parsec_dir + "/ferret/inst/amd64-linux.gcc/bin/ferret " + parsec_dir + "/ferret/inputs/corel lsh " + parsec_dir + "/ferret/inputs/queries 10 20 4 " + parsec_dir + "/ferret/run/output.txt",
     'fluidanimate' : parsec_dir + "/fluidanimate/inst/amd64-linux.gcc/bin/fluidanimate 4 5 " + parsec_dir + "/fluidanimate/inputs/in_35K.fluid " + parsec_dir + "/fluidanimate/run/out.fluid",
@@ -295,6 +296,7 @@ multiprog_2 = [
 parsec_8 = [
     ['blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes', 'blackscholes'],
     ['bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack', 'bodytrack'],
+    ['canneal', 'canneal', 'canneal', 'canneal', 'canneal', 'canneal', 'canneal', 'canneal'],
     ['facesim', 'facesim', 'facesim', 'facesim', 'facesim', 'facesim', 'facesim', 'facesim'],
     ['ferret', 'ferret', 'ferret', 'ferret', 'ferret', 'ferret', 'ferret', 'ferret'],
     ['fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate', 'fluidanimate'],
@@ -337,7 +339,7 @@ def multiprogs_DRAMSim2():
         config =  "sim = {\n"
         config += "    phaseLength = 10000;\n"
         config += "    maxProcEventualDumps = " + str(len(workload)) + ";\n"
-        config += "    statsPhaseInterval = 1;\n};\n\n"
+        config += "    statsPhaseInterval = 10000;\n};\n\n"
         config += "sys = {\n"
         config += "    frequency = 1200;\n"
         config += "    lineSize = 64;\n"
@@ -417,7 +419,7 @@ def multiprogs_DRAMSim2():
         submit_file.close()
         
         os.system("condor_submit " + scriptgen_dir + "/" + filename)
-        time.sleep(5)
+        time.sleep(2)
 
 def multiprogs_parsec():
     for workload in workloads:
@@ -1096,6 +1098,36 @@ workloads = multiprog_8
 # systemIni = systemIni_fs
 # multiprogs_DRAMSim2()
 
+# # bank partitioning
+# folder = "bankpar_diffbench_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_bankpar
+# multiprogs_DRAMSim2()
+#
+# # rank partitioning
+# folder = "rankpar_diffbench_8"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_rankpar
+# multiprogs_DRAMSim2()
+
 # Eight programs
 # workloads = parsec_8
 # # baseline scheme
@@ -1219,7 +1251,7 @@ workloads = multiprog_8
 # multiprogs_parsec()
 
 # Dynamic scheduling
-folder = "dynamic_18_43"
+folder = "dynamic_rank_3_64"
 
 if not os.path.exists(results_dir + "/" + folder):
     os.makedirs(results_dir + "/" + folder)

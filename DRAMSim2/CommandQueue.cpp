@@ -2326,14 +2326,14 @@ unsigned CommandQueue::getRefreshRank()
         return 1000;
 }
 
-void CommandQueue::delay(unsigned domain)
+void CommandQueue::delay(unsigned domain, unsigned adjust_delay)
 {
     for (size_t i=0;i<NUM_RANKS;i++)
     {
         vector<BusPacket *> &queue = getCommandQueue(i, domain);
         for (size_t j=0;j<queue.size();j++)
         {
-            queue[j]->issueTime = queue[j]->issueTime + num_pids*DYNAMIC_B;
+            queue[j]->issueTime = queue[j]->issueTime + adjust_delay;
         }
     }
 }
