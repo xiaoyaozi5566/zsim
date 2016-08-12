@@ -706,6 +706,12 @@ void MemoryController::update()
             // return this transaction
             if (returnTime == currentClockCycle)
             {
+                if (returnTime > returnTransaction[j]->w_issueTime + B_WORST + B_WORST)
+                {
+                    printf("addr %lx violate the worst case response time!\n", returnTransaction[j]->address);
+                    printf("currentClockCycle: %ld\n", currentClockCycle);
+                    printf("worst case time: %ld\n", returnTransaction[j]->w_issueTime + B_WORST + B_WORST);
+                }
                 bool foundMatch=false;
                 unsigned queue_index;
                 if (queuingStructure == PerRankPerDomain)
@@ -754,7 +760,7 @@ void MemoryController::update()
                         // printf("domain %ld requests: %d\n", i, perDomainTrans[i]);
                     }
                 }
-                // if (perDomainTrans[srcId] == 100000)
+                // if (perDomainTrans[srcId] == 1000)
                 // {
                 //     perDomainTrans[srcId] = 0;
                 //     perDomainVios[srcId] = 0;
@@ -763,7 +769,7 @@ void MemoryController::update()
             }
             else if (returnTime < currentClockCycle)
             {
-                unsigned adjust_delay = DYNAMIC_D;
+                unsigned adjust_delay = currentClockCycle - returnTime + 1;
                 returnTransaction[j]->issueTime += adjust_delay;
                 // update requests in command queue
                 commandQueue.delay(srcId, adjust_delay);
@@ -940,21 +946,22 @@ bool MemoryController::addTransaction(Transaction *trans)
             trans->issueTime = currentIssueTime;
             // calculate worst issue time
             unsigned worstIssueTime;
+            unsigned refresh_interval = int(REFRESH_PERIOD/tCK/NUM_RANKS);
             if (lastWorstTime[trans->srcId] == 0)
                 worstIssueTime = trans->srcId*B_WORST;
             else
             {
                 worstIssueTime = lastWorstTime[trans->srcId] + num_pids*B_WORST;
-                unsigned temp0 = worstIssueTime/(REFRESH_PERIOD/tCK/NUM_RANKS);
-                unsigned temp1 = lastWorstTime[trans->srcId]/(REFRESH_PERIOD/tCK/NUM_RANKS);
+                unsigned temp0 = worstIssueTime/refresh_interval;
+                unsigned temp1 = lastWorstTime[trans->srcId]/refresh_interval;
                 if (temp0 > temp1)
                     worstIssueTime += tRFC;
             }
             temp = worstIssueTime;
-            while (worstIssueTime <= currentClockCycle || worstIssueTime <= currentIssueTime)
+            while (worstIssueTime <= currentClockCycle + B_WORST || worstIssueTime <= currentIssueTime)
             {
                 worstIssueTime += num_pids*B_WORST;
-                if (worstIssueTime/(REFRESH_PERIOD/tCK/NUM_RANKS) > temp/(REFRESH_PERIOD/tCK/NUM_RANKS))
+                if (worstIssueTime/refresh_interval > temp/refresh_interval)
                     worstIssueTime += tRFC;
                 temp = worstIssueTime;
             }

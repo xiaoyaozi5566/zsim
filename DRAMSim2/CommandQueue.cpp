@@ -69,6 +69,9 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
         window_size(100000),
         transition(false),
         transition_counter(0),
+        secure_mode(false),
+        secure_rank(0),
+        secure_domain(0),
         insecPolicy(schedulingPolicy),
         sendAct(true)
 {
@@ -1470,6 +1473,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
                 {
                     *busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);
+                    // printf("refresh rank %d @ cycle %ld\n", refreshRank, currentClockCycle);
                     refreshRank = -1;
                     refreshWaiting = false;
                     sendingREF = true;
@@ -1480,75 +1484,138 @@ bool CommandQueue::pop(BusPacket **busPacket)
             if (!sendingREF)
             {
                 bool foundIssuable = false;
-                unsigned which_domain = 0;
-                unsigned min_issueTime_D = 0;
-                for (size_t i=0;i<num_pids;i++)
+                if (secure_mode)
                 {
-                    unsigned which_rank = 0;
-                    unsigned min_issueTime_R = 0;
-                    for (size_t j=0;j<NUM_RANKS;j++)
+                    vector<BusPacket *> &queue = getCommandQueue(secure_rank, secure_domain);
+                    // the rd/wr command has been issued by refreshwaiting
+                    if (queue.empty()) secure_mode = false;
+                    else if (isIssuable(queue[0]))
                     {
-                        vector<BusPacket *> &queue = getCommandQueue(j, i);
-                        if (!queue.empty())
-                        {
-                            if (min_issueTime_R == 0)
-                            {
-                                min_issueTime_R = queue[0]->issueTime;
-                                which_rank = j;
-                            }
-                            else if (min_issueTime_R > queue[0]->issueTime)
-                            {
-                                min_issueTime_R = queue[0]->issueTime;
-                                which_rank = j;
-                            }
-                        }
-                    }
-                    // there is a request from this domain
-                    if (min_issueTime_R != 0)
-                    {
-                        vector<BusPacket *> &queue = getCommandQueue(which_rank, i);
-                        if (isIssuable(queue[0]))
-                        {
-                            if (min_issueTime_D == 0)
-                            {
-                                min_issueTime_D = min_issueTime_R;
-                                which_domain = i;
-                            }
-                            else if (min_issueTime_D > min_issueTime_R)
-                            {
-                                min_issueTime_D = min_issueTime_R;
-                                which_domain = i;
-                            }
-                        }
+                        if (queue[0]->busPacketType != ACTIVATE)
+                            secure_mode = false;
+                        *busPacket = queue[0];
+                        // printf("addr %lx issued in secure mode @ cycle %ld\n", queue[0]->physicalAddress, currentClockCycle);
+                        queue.erase(queue.begin());
+                        foundIssuable = true;
                     }
                 }
-                // there is some request being selected from all domains
-                if (min_issueTime_D != 0)
+                if (!foundIssuable)
                 {
-                    unsigned which_rank = 0;
-                    unsigned min_issueTime_R = 0;
-                    for (size_t j=0;j<NUM_RANKS;j++)
+                    unsigned which_domain = 0;
+                    unsigned min_issueTime_D = 0;
+                    for (size_t i=0;i<num_pids;i++)
                     {
-                        vector<BusPacket *> &queue = getCommandQueue(j, which_domain);
-                        if (!queue.empty())
+                        unsigned which_rank = 0;
+                        unsigned min_issueTime_R = 0;
+                        for (size_t j=0;j<NUM_RANKS;j++)
                         {
-                            if (min_issueTime_R == 0)
+                            vector<BusPacket *> &queue = getCommandQueue(j, i);
+                            if (!queue.empty())
                             {
-                                min_issueTime_R = queue[0]->issueTime;
-                                which_rank = j;
-                            }
-                            else if (min_issueTime_R > queue[0]->issueTime)
-                            {
-                                min_issueTime_R = queue[0]->issueTime;
-                                which_rank = j;
+                                if (min_issueTime_R == 0)
+                                {
+                                    min_issueTime_R = queue[0]->issueTime;
+                                    which_rank = j;
+                                }
+                                else if (min_issueTime_R > queue[0]->issueTime)
+                                {
+                                    min_issueTime_R = queue[0]->issueTime;
+                                    which_rank = j;
+                                }
                             }
                         }
+                        // there is a request from this domain
+                        if (min_issueTime_R != 0)
+                        {
+                            vector<BusPacket *> &queue = getCommandQueue(which_rank, i);
+                            if (queue[0]->busPacketType == ACTIVATE && secure_mode == false &&
+                                    queue[0]->w_issueTime <= currentClockCycle + B_WORST)
+                            {
+                                secure_mode = true;
+                                secure_rank = which_rank;
+                                secure_domain = i;
+                                printf("addr %lx from %d enter secure mode\n", queue[0]->physicalAddress, queue[0]->srcId);
+                                printf("secure_rank %d, secure_domain %d\n", secure_rank, secure_domain);
+                                printf("currentClockCycle: %d\n", currentClockCycle);
+                                printf("expected issue time: %d\n", queue[0]->issueTime);
+                                printf("worst issue time: %d\n", queue[0]->w_issueTime);
+                            }
+                            
+                            if (!((which_rank == refreshRank) && refreshWaiting && queue[0]->busPacketType == ACTIVATE))
+                            {
+                                // In secure mode, only issue rd/wr requests
+                                if (secure_mode)
+                                {
+                                    if (isIssuable(queue[0]) && queue[0]->busPacketType != ACTIVATE)
+                                    {
+                                        if (min_issueTime_D == 0)
+                                        {
+                                            min_issueTime_D = min_issueTime_R;
+                                            which_domain = i;
+                                        }
+                                        else if (min_issueTime_D > min_issueTime_R)
+                                        {
+                                            min_issueTime_D = min_issueTime_R;
+                                            which_domain = i;
+                                        }
+                                    }
+                                }
+                                else if (isIssuable(queue[0]))
+                                {
+                                    if (min_issueTime_D == 0)
+                                    {
+                                        min_issueTime_D = min_issueTime_R;
+                                        which_domain = i;
+                                    }
+                                    else if (min_issueTime_D > min_issueTime_R)
+                                    {
+                                        min_issueTime_D = min_issueTime_R;
+                                        which_domain = i;
+                                    }
+                                }
+                            }                      
+                        }
                     }
-                    vector<BusPacket *> &queue = getCommandQueue(which_rank, which_domain);
-                    *busPacket = queue[0];
-                    queue.erase(queue.begin());
-                    foundIssuable = true;
-                }
+                    // there is some request being selected from all domains
+                    if (min_issueTime_D != 0)
+                    {
+                        unsigned which_rank = 0;
+                        unsigned min_issueTime_R = 0;
+                        for (size_t j=0;j<NUM_RANKS;j++)
+                        {
+                            vector<BusPacket *> &queue = getCommandQueue(j, which_domain);
+                            if (!queue.empty())
+                            {
+                                if (min_issueTime_R == 0)
+                                {
+                                    min_issueTime_R = queue[0]->issueTime;
+                                    which_rank = j;
+                                }
+                                else if (min_issueTime_R > queue[0]->issueTime)
+                                {
+                                    min_issueTime_R = queue[0]->issueTime;
+                                    which_rank = j;
+                                }
+                            }
+                        }
+                        vector<BusPacket *> &queue = getCommandQueue(which_rank, which_domain);
+                        if (secure_mode)
+                        {
+                            if (queue[0]->busPacketType != ACTIVATE)
+                            {
+                                *busPacket = queue[0];
+                                queue.erase(queue.begin());
+                                foundIssuable = true;
+                            }
+                        }
+                        else
+                        {
+                            *busPacket = queue[0];
+                            queue.erase(queue.begin());
+                            foundIssuable = true;
+                        }                 
+                    }
+                }    
 
                 //if we couldn't find anything to send, return false
                 if (!foundIssuable) return false;

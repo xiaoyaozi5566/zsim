@@ -128,6 +128,9 @@ protected:
     uint64_t window_size;
     bool transition;
     uint64_t transition_counter;
+    bool secure_mode;
+    uint64_t secure_rank;
+    uint64_t secure_domain;
     SchedulingPolicy insecPolicy;
 
 	bool sendAct;
