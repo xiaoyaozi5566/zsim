@@ -81,6 +81,8 @@ public:
     unsigned getCurrentDomain();
     unsigned* selectRanks(pair <unsigned, unsigned> * rankRequests, unsigned num_ranks);
     void delay(unsigned domain, unsigned adjust_delay);
+    unsigned calWorstTime(BusPacket *busPacket);
+    unsigned calExpectTime(BusPacket *busPacket);
 
 	//fields
 	
@@ -132,6 +134,11 @@ protected:
     uint64_t secure_rank;
     uint64_t secure_domain;
     SchedulingPolicy insecPolicy;
+    
+    vector<uint64_t> lastIssueTime;
+    vector<uint64_t> lastWorstTime;
+    vector<uint64_t> perDomainTrans;
+    vector<uint64_t> perDomainVios;
 
 	bool sendAct;
 };

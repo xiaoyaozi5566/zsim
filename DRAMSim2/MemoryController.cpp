@@ -38,6 +38,7 @@
 #include "MemoryController.h"
 #include "MemorySystem.h"
 #include "AddressMapping.h"
+#include <assert.h>
 
 #define SEQUENTIAL(rank,bank) (rank*NUM_BANKS)+bank
 
@@ -116,6 +117,7 @@ MemoryController::MemoryController(MemorySystem *parent, unsigned num_pids_, CSV
     lastWorstTime = vector<uint64_t>(num_pids, 0);
 	perDomainTrans = vector<uint64_t>(num_pids, 0);
     perDomainVios = vector<uint64_t>(num_pids, 0);
+    lastTimeAdded = vector<uint64_t>(num_pids, 0);
     //Power related packets
 	backgroundEnergy = vector <uint64_t >(NUM_RANKS,0);
 	burstEnergy = vector <uint64_t> (NUM_RANKS,0);
@@ -149,9 +151,9 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 
 	//add to return read data queue
 	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data, bpacket->srcId));
-    // if (perDomainVios[bpacket->srcId] >= 3)
-    //     returnTransaction.back()->issueTime = bpacket->w_issueTime - tRCD;
-    // else
+    if (perDomainVios[bpacket->srcId] >= VIO_LIMIT)
+        returnTransaction.back()->issueTime = bpacket->w_issueTime - tRCD + B_WORST + B_WORST - DYNAMIC_D;
+    else
         returnTransaction.back()->issueTime = bpacket->issueTime - tRCD;
     returnTransaction.back()->w_issueTime = bpacket->w_issueTime - tRCD;
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
@@ -571,6 +573,7 @@ void MemoryController::update()
 
                 ACTcommand->issueTime = transaction->issueTime;
                 ACTcommand->w_issueTime = transaction->w_issueTime;
+                ACTcommand->timeAdded = transaction->timeAdded;
                 //create read or write command and enqueue it
     			BusPacketType bpType = transaction->getBusPacketType();
     			BusPacket *command = new BusPacket(bpType, transaction->address,
@@ -579,6 +582,7 @@ void MemoryController::update()
                     
                 command->issueTime = transaction->issueTime + tRCD;
                 command->w_issueTime = transaction->w_issueTime + tRCD;
+                command->timeAdded = transaction->timeAdded;
 
     			commandQueue.enqueue(ACTcommand);
     			commandQueue.enqueue(command);
@@ -699,103 +703,141 @@ void MemoryController::update()
     //check for outstanding data to return to the CPU
     if (schedulingPolicy == Dynamic)
     {
-        for (size_t j=0;j<returnTransaction.size();j++)
+        int queueSize = returnTransaction.size();
+        // allow multiple responses to be returned in a cycle
+        if (queueSize > 0)
         {
-            unsigned returnTime = returnTransaction[j]->issueTime + DYNAMIC_D;
-            unsigned srcId = returnTransaction[j]->srcId;
-            // return this transaction
-            if (returnTime == currentClockCycle)
+            for (int j=queueSize-1;j>=0;j--)
             {
-                if (returnTime > returnTransaction[j]->w_issueTime + B_WORST + B_WORST)
+                unsigned returnTime = returnTransaction[j]->issueTime + DYNAMIC_D;
+                unsigned worstTime = returnTransaction[j]->w_issueTime + B_WORST + B_WORST;
+                unsigned srcId = returnTransaction[j]->srcId;
+                // return this transaction
+                if (returnTime == currentClockCycle)
                 {
-                    printf("addr %lx violate the worst case response time!\n", returnTransaction[j]->address);
-                    printf("currentClockCycle: %ld\n", currentClockCycle);
-                    printf("worst case time: %ld\n", returnTransaction[j]->w_issueTime + B_WORST + B_WORST);
-                }
-                bool foundMatch=false;
-                unsigned queue_index;
-                if (queuingStructure == PerRankPerDomain)
-                    queue_index = srcId;
-                else
-                    queue_index = 0;
-                //find the pending read transaction to calculate latency
-                for (size_t i=0;i<pendingReadTransactions[queue_index].size();i++)
-                {
-                    if (pendingReadTransactions[queue_index][i]->address == returnTransaction[j]->address)
+                    // if (returnTime > worstTime)
+                    // {
+                    //     printf("addr %lx violate the worst case response time!\n", returnTransaction[j]->address);
+                    //     printf("currentClockCycle: %ld\n", currentClockCycle);
+                    //     printf("worst case time: %d\n", worstTime);
+                    // }
+                    bool foundMatch=false;
+                    unsigned queue_index;
+                    if (queuingStructure == PerRankPerDomain)
+                        queue_index = srcId;
+                    else
+                        queue_index = 0;
+                    //find the pending read transaction to calculate latency
+                    for (size_t i=0;i<pendingReadTransactions[queue_index].size();i++)
                     {
-                        //if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
-                        //    {
-                        //        pendingReadTransactions[i]->print();
-                        //        exit(0);
-                        //    }
-                        unsigned chan,rank,bank,row,col;
-                        addressMapping(returnTransaction[j]->address, num_pids, returnTransaction[j]->srcId, chan,rank,bank,row,col);
-                        insertHistogram(currentClockCycle-pendingReadTransactions[queue_index][i]->timeAdded,rank,bank);
-                        //return latency
-                        returnReadData(pendingReadTransactions[queue_index][i]);
+                        if (pendingReadTransactions[queue_index][i]->address == returnTransaction[j]->address)
+                        {
+                            //if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
+                            //    {
+                            //        pendingReadTransactions[i]->print();
+                            //        exit(0);
+                            //    }
+                            unsigned chan,rank,bank,row,col;
+                            addressMapping(returnTransaction[j]->address, num_pids, returnTransaction[j]->srcId, chan,rank,bank,row,col);
+                            insertHistogram(currentClockCycle-pendingReadTransactions[queue_index][i]->timeAdded,rank,bank);
+                            //return latency
+                            returnReadData(pendingReadTransactions[queue_index][i]);
 
-                        delete pendingReadTransactions[queue_index][i];
-                        pendingReadTransactions[queue_index].erase(pendingReadTransactions[queue_index].begin()+i);
-                        foundMatch=true;
-                        break;
+                            delete pendingReadTransactions[queue_index][i];
+                            pendingReadTransactions[queue_index].erase(pendingReadTransactions[queue_index].begin()+i);
+                            foundMatch=true;
+                            break;
+                        }
                     }
-                }
 
-                if (!foundMatch)
-                {
-                    ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[j]->address<<dec);
-                    abort();
-                }
-                // printf("Addr: %lx from domain %d returned @ cycle %d\n", returnTransaction[j]->address, srcId, currentClockCycle);
-                delete returnTransaction[j];
-                returnTransaction.erase(returnTransaction.begin()+j);
-                totalTransactions++;
-                perDomainTrans[srcId]++;
-                if (totalTransactions % 1000 == 0)
-                {
-                    printf("total transactions: %ld, num_violations: %d\n", totalTransactions, num_violations);
-                    for (size_t i=0;i<num_pids;i++)
+                    if (!foundMatch)
                     {
-                        printf("domain %ld violations: %ld\n", i, perDomainVios[i]);
-                        // printf("domain %ld requests: %d\n", i, perDomainTrans[i]);
+                        ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[j]->address<<dec);
+                        abort();
                     }
+                    // printf("Addr: %lx from domain %d returned @ cycle %d\n", returnTransaction[j]->address, srcId, currentClockCycle);
+                    delete returnTransaction[j];
+                    returnTransaction.erase(returnTransaction.begin()+j);
+                    totalTransactions++;
+                    perDomainTrans[srcId]++;
+                    // if (totalTransactions % 1000 == 0)
+                    // {
+                    //     printf("total transactions: %ld, num_violations: %d\n", totalTransactions, num_violations);
+                    //     for (size_t i=0;i<num_pids;i++)
+                    //     {
+                    //         printf("domain %ld violations: %ld\n", i, perDomainVios[i]);
+                    //         // printf("domain %ld requests: %d\n", i, perDomainTrans[i]);
+                    //     }
+                    //     printf("returnTransaction size: %ld\n", returnTransaction.size());
+                    // }
+                    // if (perDomainTrans[srcId] == NUM_ACCESSES)
+                    // {
+                    //     perDomainTrans[srcId] = 0;
+                    //     perDomainVios[srcId] = 0;
+                    // }
+                    // break;
                 }
-                // if (perDomainTrans[srcId] == 1000)
+                else if (returnTime < currentClockCycle)
+                {
+                    printf("Error! addr: %lx, domain: %d, returnTime: %d, currentClockCycle: %ld\n", returnTransaction[j]->address, returnTransaction[j]->srcId, returnTime, currentClockCycle);
+                    exit(0);
+                }
                 // {
-                //     perDomainTrans[srcId] = 0;
-                //     perDomainVios[srcId] = 0;
+                //     if (worstTime < returnTime)
+                //     {
+                //         printf("addr %lx violate the worst case response time!\n", returnTransaction[j]->address);
+                //         printf("currentClockCycle: %ld\n", currentClockCycle);
+                //         printf("worst case time: %d\n", worstTime);
+                //         printf("returnTime: %d\n", returnTime);
+                //         printf("Error: worstTime smaller than returnTime!");
+                //     }
+                //     assert(worstTime >= returnTime);
+                //
+                //     unsigned adjust_delay;
+                //     if (returnTime + DELAY_1 > currentClockCycle)
+                //         adjust_delay = DELAY_1;
+                //     else if (returnTime + DELAY_2 > currentClockCycle)
+                //         adjust_delay = DELAY_2;
+                //     else
+                //         adjust_delay = worstTime - returnTime;
+                //
+                //     printf("violation, addr: %lx, domain: %d, returnTime: %d, adjustTime: %d, worstTime: %d, currentClockCycle: %ld\n", returnTransaction[j]->address, returnTransaction[j]->srcId, returnTime, returnTime+adjust_delay, worstTime, currentClockCycle );
+                //
+                //     returnTransaction[j]->issueTime += adjust_delay;
+                //     // update requests in command queue
+                //     commandQueue.delay(srcId, adjust_delay);
+                //     // update future requests
+                //     lastIssueTime[srcId] += adjust_delay;
+                //     // update requests in transaction queue
+                //     for (size_t i=0;i<transactionQueues[srcId].size();i++)
+                //         transactionQueues[srcId][i]->issueTime += adjust_delay;
+                //     // update respones in response queue
+                //     for (size_t i=j+1;i<returnTransaction.size();i++)
+                //     {
+                //         if (returnTransaction[i]->srcId == srcId)
+                //             returnTransaction[i]->issueTime += adjust_delay;
+                //     }
+                //     for (size_t i=0;i<NUM_RANKS;i++)
+                //     {
+                //         vector<BusPacket *> readReturnPacket = (*ranks)[i]->readReturnPacket;
+                //         for (size_t k=0;k<readReturnPacket.size();k++)
+                //         {
+                //             if (readReturnPacket[k]->srcId == srcId)
+                //                 readReturnPacket[k]->issueTime += adjust_delay;
+                //         }
+                //     }
+                //     perDomainVios[srcId]++;
+                //     num_violations++;
                 // }
-                break;
             }
-            else if (returnTime < currentClockCycle)
+        }
+        if (currentClockCycle % NUM_ACCESSES == 0)
+        {
+            for (size_t i=0;i<num_pids;i++)
             {
-                unsigned adjust_delay = currentClockCycle - returnTime + 1;
-                returnTransaction[j]->issueTime += adjust_delay;
-                // update requests in command queue
-                commandQueue.delay(srcId, adjust_delay);
-                // update future requests
-                lastIssueTime[srcId] += adjust_delay;
-                // update requests in transaction queue
-                for (size_t i=0;i<transactionQueues[srcId].size();i++)
-                    transactionQueues[srcId][i]->issueTime += adjust_delay;
-                // update respones in response queue
-                for (size_t i=j+1;i<returnTransaction.size();i++)
-                {
-                    if (returnTransaction[i]->srcId == srcId)
-                        returnTransaction[i]->issueTime += adjust_delay;
-                }
-                for (size_t i=0;i<NUM_RANKS;i++)
-                {
-                    vector<BusPacket *> readReturnPacket = (*ranks)[i]->readReturnPacket;
-                    for (size_t k=0;k<readReturnPacket.size();k++)
-                    {
-                        if (readReturnPacket[k]->srcId == srcId)
-                            readReturnPacket[k]->issueTime += adjust_delay;
-                    }
-                }
-                perDomainVios[srcId]++;
-                num_violations++;
-            }
+                perDomainTrans[i] = 0;
+                perDomainVios[i] = 0; 
+            }            
         }
     }
 	else if (returnTransaction.size()>0)
@@ -929,44 +971,54 @@ bool MemoryController::WillAcceptTransaction(uint32_t srcId)
 //allows outside source to make request of memory system
 bool MemoryController::addTransaction(Transaction *trans)
 {
+    unsigned srcId = trans->srcId;
 	if (WillAcceptTransaction(trans->srcId))
 	{
-		trans->timeAdded = currentClockCycle;
+		if (currentClockCycle <= lastTimeAdded[srcId])
+        {
+            trans->timeAdded = lastTimeAdded[srcId] + 1;
+            lastTimeAdded[srcId]++;
+        }
+        else
+        {
+            trans->timeAdded = currentClockCycle;
+            lastTimeAdded[srcId] = currentClockCycle;
+        }
         if (queuingStructure==PerRankPerDomain)
         {
-            // calculate expected issue time
-            unsigned temp = currentClockCycle/(num_pids*DYNAMIC_B);
-            unsigned currentIssueTime = temp*num_pids*DYNAMIC_B + trans->srcId*DYNAMIC_B;
-            
-            while(currentIssueTime <= currentClockCycle || currentIssueTime <= lastIssueTime[trans->srcId])
-            {
-                currentIssueTime += num_pids*DYNAMIC_B;
-            }
-            lastIssueTime[trans->srcId] = currentIssueTime;         
-            trans->issueTime = currentIssueTime;
-            // calculate worst issue time
-            unsigned worstIssueTime;
-            unsigned refresh_interval = int(REFRESH_PERIOD/tCK/NUM_RANKS);
-            if (lastWorstTime[trans->srcId] == 0)
-                worstIssueTime = trans->srcId*B_WORST;
-            else
-            {
-                worstIssueTime = lastWorstTime[trans->srcId] + num_pids*B_WORST;
-                unsigned temp0 = worstIssueTime/refresh_interval;
-                unsigned temp1 = lastWorstTime[trans->srcId]/refresh_interval;
-                if (temp0 > temp1)
-                    worstIssueTime += tRFC;
-            }
-            temp = worstIssueTime;
-            while (worstIssueTime <= currentClockCycle + B_WORST || worstIssueTime <= currentIssueTime)
-            {
-                worstIssueTime += num_pids*B_WORST;
-                if (worstIssueTime/refresh_interval > temp/refresh_interval)
-                    worstIssueTime += tRFC;
-                temp = worstIssueTime;
-            }
-            lastWorstTime[trans->srcId] = worstIssueTime;
-            trans->w_issueTime = worstIssueTime;
+            // // calculate expected issue time
+            // unsigned temp = currentClockCycle/(num_pids*DYNAMIC_B);
+            // unsigned currentIssueTime = temp*num_pids*DYNAMIC_B + trans->srcId*DYNAMIC_B;
+            //
+            // while(currentIssueTime <= currentClockCycle || currentIssueTime <= lastIssueTime[trans->srcId])
+            // {
+            //     currentIssueTime += num_pids*DYNAMIC_B;
+            // }
+            // lastIssueTime[trans->srcId] = currentIssueTime;
+            // trans->issueTime = currentIssueTime;
+            // // calculate worst issue time
+            // unsigned worstIssueTime;
+            // unsigned refresh_interval = int(REFRESH_PERIOD/tCK/NUM_RANKS);
+            // if (lastWorstTime[trans->srcId] == 0)
+            //     worstIssueTime = trans->srcId*B_WORST;
+            // else
+            // {
+            //     worstIssueTime = lastWorstTime[trans->srcId] + num_pids*B_WORST;
+            //     unsigned temp0 = worstIssueTime/refresh_interval;
+            //     unsigned temp1 = lastWorstTime[trans->srcId]/refresh_interval;
+            //     if (temp0 > temp1)
+            //         worstIssueTime += tRFC;
+            // }
+            // temp = worstIssueTime;
+            // while (worstIssueTime <= currentClockCycle + B_WORST || worstIssueTime <= currentIssueTime)
+            // {
+            //     worstIssueTime += num_pids*B_WORST;
+            //     if (worstIssueTime/refresh_interval > temp/refresh_interval)
+            //         worstIssueTime += tRFC;
+            //     temp = worstIssueTime;
+            // }
+            // lastWorstTime[trans->srcId] = worstIssueTime;
+            // trans->w_issueTime = worstIssueTime;
             
             // printf("addr: %lx, domain: %d, issue_time: %d, w_time: %d\n", trans->address, trans->srcId, currentIssueTime, worstIssueTime);
             transactionQueues[trans->srcId].push_back(trans);

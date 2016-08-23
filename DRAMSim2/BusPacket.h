@@ -67,6 +67,7 @@ public:
     uint64_t arrivalTime;
     unsigned issueTime;
     unsigned w_issueTime;
+    unsigned timeAdded;
 	void *data;
 
 	//Functions

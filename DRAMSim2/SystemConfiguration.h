@@ -59,6 +59,8 @@
 // #define RETURN_DELAY 56
 // #define TURN_LENGTH 54
 #define B_WORST 43
+#define DELAY_1 30
+#define DELAY_2 160
 
 extern std::ofstream cmd_verify_out; //used by BusPacket.cpp if VERIFICATION_OUTPUT is enabled
 //extern std::ofstream visDataOut;
@@ -148,6 +150,8 @@ extern unsigned WORST_CASE;
 extern unsigned NUM_DIFF_BANKS;
 extern unsigned DYNAMIC_B;
 extern unsigned DYNAMIC_D;
+extern unsigned NUM_ACCESSES;
+extern unsigned VIO_LIMIT;
 
 extern unsigned EPOCH_LENGTH;
 

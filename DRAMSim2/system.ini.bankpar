@@ -19,6 +19,8 @@ USE_RANDOM_ADDR=false                            ;use random address mapping
 USE_BETTER_SCHEDULE=false                        ;use better schedule
 DYNAMIC_B=6;  
 DYNAMIC_D=30;
+NUM_ACCESSES=1000;
+VIO_LIMIT=3;
 
 ;for true/false, please use all lowercase
 DEBUG_TRANS_Q=false

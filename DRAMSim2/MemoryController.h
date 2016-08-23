@@ -128,6 +128,7 @@ private:
     vector<uint64_t> lastWorstTime;
     vector<uint64_t> perDomainTrans;
     vector<uint64_t> perDomainVios;
+    vector<uint64_t> lastTimeAdded;
 	
 public:
 	// energy values are per rank -- SST uses these directly, so make these public 

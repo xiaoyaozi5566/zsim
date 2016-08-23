@@ -155,7 +155,17 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
     
     rankRequests = new pair<unsigned, unsigned>[NUM_RANKS];
         
-        
+	lastIssueTime = vector<uint64_t>(num_pids, 0);
+    lastWorstTime = vector<uint64_t>(num_pids, 0);
+	perDomainTrans = vector<uint64_t>(num_pids, 0);
+    perDomainVios = vector<uint64_t>(num_pids, 0);
+    
+    for (size_t i=0;i<num_pids;i++)
+    {
+        lastIssueTime[i] = i*DYNAMIC_B + tRCD;
+        lastWorstTime[i] = i*B_WORST;
+    }     
+    
 	//FOUR-bank activation window
 	//	this will count the number of activations within a given window
 	//	(decrementing counter)
@@ -1446,6 +1456,48 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 {
                                     if (packet->busPacketType != ACTIVATE && isIssuable(packet))
                                     {
+                                        unsigned expectIssueTime = calExpectTime(queue[0]);
+                    
+                                        unsigned worstIssueTime = calWorstTime(queue[0]);
+                        
+                                        unsigned adjust_delay = 0;
+                                        if (queue[0]->busPacketType != ACTIVATE)
+                                        {
+                                            lastIssueTime[i] = expectIssueTime;
+                                            lastWorstTime[i] = worstIssueTime - tRCD;
+                                            int delayed_cycles = (currentClockCycle + RL + BL/2) - (expectIssueTime - tRCD + DYNAMIC_D) + 1;
+                                            if (delayed_cycles > 0) 
+                                            {
+                                                perDomainVios[i]++;
+                                                if (delayed_cycles < DELAY_1)
+                                                    adjust_delay = DELAY_1;
+                                                else if (delayed_cycles < DELAY_2)
+                                                    adjust_delay = DELAY_2;
+                                                else
+                                                    adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                
+                                                lastIssueTime[i] += adjust_delay;
+                                                
+                                                // printf("Addr: %lx, domain: %d, currentClockCycle: %ld, delayed_cycles: %d, expectIssueTime: %d, adjust_delay: %d\n", queue[0]->physicalAddress, queue[0]->srcId, currentClockCycle, delayed_cycles, expectIssueTime, adjust_delay);
+                                            }
+                                            perDomainTrans[i]++;
+                                            if (perDomainTrans[i] == NUM_ACCESSES)
+                                            {
+                                                perDomainTrans[i] = 0;
+                                                perDomainVios[i] = 0;
+                                            }                                  
+                                        }
+                                        // printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+//                                         printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
+                                        if (perDomainVios[i] > VIO_LIMIT)
+                                        {
+                                            queue[0]->issueTime = worstIssueTime - tRCD + B_WORST + B_WORST - DYNAMIC_D;
+                                            lastIssueTime[i] = worstIssueTime;
+                                        }
+                                        else
+                                            queue[0]->issueTime = expectIssueTime + adjust_delay;
+                                        queue[0]->w_issueTime = worstIssueTime;
+                                        
                                         *busPacket = packet;
                                         queue.erase(queue.begin());
                                         sendingREF = true;
@@ -1491,6 +1543,47 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     if (queue.empty()) secure_mode = false;
                     else if (isIssuable(queue[0]))
                     {
+                        unsigned expectIssueTime = calExpectTime(queue[0]);
+                    
+                        unsigned worstIssueTime = calWorstTime(queue[0]);
+                        
+                        unsigned adjust_delay = 0;
+                        if (queue[0]->busPacketType != ACTIVATE)
+                        {
+                            lastIssueTime[secure_domain] = expectIssueTime;
+                            lastWorstTime[secure_domain] = worstIssueTime - tRCD;
+                            int delayed_cycles = (currentClockCycle + RL + BL/2) - (expectIssueTime - tRCD + DYNAMIC_D) + 1;
+                            if (delayed_cycles > 0) 
+                            {
+                                perDomainVios[secure_domain]++;
+                                if (delayed_cycles < DELAY_1)
+                                    adjust_delay = DELAY_1;
+                                else if (delayed_cycles < DELAY_2)
+                                    adjust_delay = DELAY_2;
+                                else
+                                    adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                
+                                lastIssueTime[secure_domain] += adjust_delay;
+                                
+                                // printf("Addr: %lx, domain: %d, currentClockCycle: %ld, delayed_cycles: %d, expectIssueTime: %d, adjust_delay: %d\n", queue[0]->physicalAddress, queue[0]->srcId, currentClockCycle, delayed_cycles, expectIssueTime, adjust_delay);
+                            }
+                            perDomainTrans[secure_domain]++;
+                            if (perDomainTrans[secure_domain] == NUM_ACCESSES)
+                            {
+                                perDomainTrans[secure_domain] = 0;
+                                perDomainVios[secure_domain] = 0;
+                            }  
+                            if (perDomainVios[secure_domain] > VIO_LIMIT)
+                                lastIssueTime[secure_domain] = worstIssueTime;                                
+                        }
+                        // printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+//                         printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
+                        if (perDomainVios[secure_domain] > VIO_LIMIT)
+                            queue[0]->issueTime = worstIssueTime - tRCD + B_WORST + B_WORST - DYNAMIC_D;
+                        else
+                            queue[0]->issueTime = expectIssueTime + adjust_delay;
+                        queue[0]->w_issueTime = worstIssueTime;
+                        
                         if (queue[0]->busPacketType != ACTIVATE)
                             secure_mode = false;
                         *busPacket = queue[0];
@@ -1506,39 +1599,44 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     for (size_t i=0;i<num_pids;i++)
                     {
                         unsigned which_rank = 0;
-                        unsigned min_issueTime_R = 0;
+                        unsigned min_timeAdded = 0;
                         for (size_t j=0;j<NUM_RANKS;j++)
                         {
                             vector<BusPacket *> &queue = getCommandQueue(j, i);
                             if (!queue.empty())
                             {
-                                if (min_issueTime_R == 0)
+                                if (min_timeAdded == 0)
                                 {
-                                    min_issueTime_R = queue[0]->issueTime;
+                                    min_timeAdded = queue[0]->timeAdded;
                                     which_rank = j;
                                 }
-                                else if (min_issueTime_R > queue[0]->issueTime)
+                                else if (min_timeAdded > queue[0]->timeAdded)
                                 {
-                                    min_issueTime_R = queue[0]->issueTime;
+                                    min_timeAdded = queue[0]->timeAdded;
                                     which_rank = j;
                                 }
                             }
                         }
                         // there is a request from this domain
-                        if (min_issueTime_R != 0)
+                        if (min_timeAdded != 0)
                         {
                             vector<BusPacket *> &queue = getCommandQueue(which_rank, i);
+                            
+                            unsigned expectIssueTime = calExpectTime(queue[0]);
+
+                            unsigned worstIssueTime = calWorstTime(queue[0]);
+                            
                             if (queue[0]->busPacketType == ACTIVATE && secure_mode == false &&
-                                    queue[0]->w_issueTime <= currentClockCycle + B_WORST)
+                                    worstIssueTime <= currentClockCycle + B_WORST)
                             {
                                 secure_mode = true;
                                 secure_rank = which_rank;
                                 secure_domain = i;
                                 printf("addr %lx from %d enter secure mode\n", queue[0]->physicalAddress, queue[0]->srcId);
-                                printf("secure_rank %d, secure_domain %d\n", secure_rank, secure_domain);
-                                printf("currentClockCycle: %d\n", currentClockCycle);
-                                printf("expected issue time: %d\n", queue[0]->issueTime);
-                                printf("worst issue time: %d\n", queue[0]->w_issueTime);
+                                printf("secure_rank %ld, secure_domain %ld\n", secure_rank, secure_domain);
+                                printf("currentClockCycle: %ld\n", currentClockCycle);
+                                printf("expected issue time: %d\n", expectIssueTime);
+                                printf("worst issue time: %d\n", worstIssueTime);
                             }
                             
                             if (!((which_rank == refreshRank) && refreshWaiting && queue[0]->busPacketType == ACTIVATE))
@@ -1550,12 +1648,12 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                     {
                                         if (min_issueTime_D == 0)
                                         {
-                                            min_issueTime_D = min_issueTime_R;
+                                            min_issueTime_D = expectIssueTime;
                                             which_domain = i;
                                         }
-                                        else if (min_issueTime_D > min_issueTime_R)
+                                        else if (min_issueTime_D > expectIssueTime)
                                         {
-                                            min_issueTime_D = min_issueTime_R;
+                                            min_issueTime_D = expectIssueTime;
                                             which_domain = i;
                                         }
                                     }
@@ -1564,12 +1662,12 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 {
                                     if (min_issueTime_D == 0)
                                     {
-                                        min_issueTime_D = min_issueTime_R;
+                                        min_issueTime_D = expectIssueTime;
                                         which_domain = i;
                                     }
-                                    else if (min_issueTime_D > min_issueTime_R)
+                                    else if (min_issueTime_D > expectIssueTime)
                                     {
-                                        min_issueTime_D = min_issueTime_R;
+                                        min_issueTime_D = expectIssueTime;
                                         which_domain = i;
                                     }
                                 }
@@ -1580,36 +1678,113 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     if (min_issueTime_D != 0)
                     {
                         unsigned which_rank = 0;
-                        unsigned min_issueTime_R = 0;
+                        unsigned min_timeAdded = 0;
                         for (size_t j=0;j<NUM_RANKS;j++)
                         {
                             vector<BusPacket *> &queue = getCommandQueue(j, which_domain);
                             if (!queue.empty())
                             {
-                                if (min_issueTime_R == 0)
+                                if (min_timeAdded == 0)
                                 {
-                                    min_issueTime_R = queue[0]->issueTime;
+                                    min_timeAdded = queue[0]->timeAdded;
                                     which_rank = j;
                                 }
-                                else if (min_issueTime_R > queue[0]->issueTime)
+                                else if (min_timeAdded > queue[0]->timeAdded)
                                 {
-                                    min_issueTime_R = queue[0]->issueTime;
+                                    min_timeAdded = queue[0]->timeAdded;
                                     which_rank = j;
                                 }
                             }
                         }
                         vector<BusPacket *> &queue = getCommandQueue(which_rank, which_domain);
+                        
+                        unsigned expectIssueTime = calExpectTime(queue[0]);
+                        
+                        unsigned worstIssueTime = calWorstTime(queue[0]);
+                        
                         if (secure_mode)
                         {
                             if (queue[0]->busPacketType != ACTIVATE)
                             {
+                                lastIssueTime[which_domain] = expectIssueTime;
+                                lastWorstTime[which_domain] = worstIssueTime - tRCD;
+                                int delayed_cycles = (currentClockCycle + RL + BL/2) - (expectIssueTime - tRCD + DYNAMIC_D) + 1;
+                                unsigned adjust_delay = 0;
+                                if (delayed_cycles > 0) 
+                                {
+                                    perDomainVios[which_domain]++;                                    
+                                    if (delayed_cycles < DELAY_1)
+                                        adjust_delay = DELAY_1;
+                                    else if (delayed_cycles < DELAY_2)
+                                        adjust_delay = DELAY_2;
+                                    else
+                                        adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                    
+                                    lastIssueTime[which_domain] += adjust_delay;
+                                    
+                                    // printf("Addr: %lx, domain: %d, currentClockCycle: %ld, delayed_cycles: %d, expectIssueTime: %d, adjust_delay: %d\n", queue[0]->physicalAddress, queue[0]->srcId, currentClockCycle, delayed_cycles, expectIssueTime, adjust_delay);
+                                }
+                                // printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+//                                 printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
+                                perDomainTrans[which_domain]++;
+                                if (perDomainTrans[which_domain] == NUM_ACCESSES)
+                                {
+                                    perDomainTrans[which_domain] = 0;
+                                    perDomainVios[which_domain] = 0;
+                                } 
+                                if (perDomainVios[which_domain] > VIO_LIMIT)
+                                {
+                                    queue[0]->issueTime = worstIssueTime - tRCD + B_WORST + B_WORST - DYNAMIC_D;
+                                    lastIssueTime[which_domain] = worstIssueTime;
+                                }
+                                else
+                                    queue[0]->issueTime = expectIssueTime + adjust_delay;
+                                queue[0]->w_issueTime = worstIssueTime;
                                 *busPacket = queue[0];
                                 queue.erase(queue.begin());
                                 foundIssuable = true;
                             }
                         }
                         else
-                        {
+                        {   
+                            unsigned adjust_delay = 0;
+                            if (queue[0]->busPacketType != ACTIVATE)
+                            {
+                                lastIssueTime[which_domain] = expectIssueTime;
+                                lastWorstTime[which_domain] = worstIssueTime - tRCD;
+                                int delayed_cycles = (currentClockCycle + RL + BL/2) - (expectIssueTime - tRCD + DYNAMIC_D) + 1;
+                                if (delayed_cycles > 0) 
+                                {
+                                    perDomainVios[which_domain]++;
+                                    if (delayed_cycles < DELAY_1)
+                                        adjust_delay = DELAY_1;
+                                    else if (delayed_cycles < DELAY_2)
+                                        adjust_delay = DELAY_2;
+                                    else
+                                        adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                    
+                                    lastIssueTime[which_domain] += adjust_delay;
+                                    
+                                    // printf("Addr: %lx, domain: %d, currentClockCycle: %ld, delayed_cycles: %d, expectIssueTime: %d, adjust_delay: %d\n", queue[0]->physicalAddress, queue[0]->srcId, currentClockCycle, delayed_cycles, expectIssueTime, adjust_delay);
+                                }
+                                
+                                if (perDomainVios[which_domain] > VIO_LIMIT)
+                                    lastIssueTime[which_domain] = worstIssueTime;
+                                
+                                perDomainTrans[which_domain]++;
+                                if (perDomainTrans[which_domain] == NUM_ACCESSES)
+                                {
+                                    perDomainTrans[which_domain] = 0;
+                                    perDomainVios[which_domain] = 0;
+                                }                                                                   
+                            }
+                            // printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+//                             printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
+                            if (perDomainVios[which_domain] > VIO_LIMIT)
+                                queue[0]->issueTime = worstIssueTime + B_WORST + B_WORST - DYNAMIC_D;
+                            else
+                                queue[0]->issueTime = expectIssueTime + adjust_delay;
+                            queue[0]->w_issueTime = worstIssueTime;
                             *busPacket = queue[0];
                             queue.erase(queue.begin());
                             foundIssuable = true;
@@ -1617,6 +1792,15 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     }
                 }    
 
+                if (currentClockCycle % 1000000 == 0)
+                {
+                    for (size_t i=0;i<num_pids;i++)
+                    {
+                        printf("domain %ld violations: %ld\n", i, perDomainVios[i]);
+                        printf("domain %ld requests: %d\n", i, perDomainTrans[i]);
+                    }
+                }
+                
                 //if we couldn't find anything to send, return false
                 if (!foundIssuable) return false;
             }
@@ -2403,4 +2587,67 @@ void CommandQueue::delay(unsigned domain, unsigned adjust_delay)
             queue[j]->issueTime = queue[j]->issueTime + adjust_delay;
         }
     }
+}
+
+unsigned CommandQueue::calWorstTime(BusPacket *busPacket)
+{
+    // calculate worst issue time
+    unsigned which_domain = busPacket->srcId;
+    unsigned worstIssueTime;
+    unsigned refresh_interval = int(REFRESH_PERIOD/tCK/NUM_RANKS);
+    
+    int preWorstTime = lastWorstTime[which_domain] - num_pids*B_WORST - tRFC;
+    if (preWorstTime > 0) 
+    {
+        if (preWorstTime/refresh_interval == lastWorstTime[which_domain]/refresh_interval)
+            preWorstTime += tRFC;
+    }
+    else
+        preWorstTime = lastWorstTime[which_domain];
+    
+    worstIssueTime = preWorstTime;
+    unsigned temp = worstIssueTime;
+    while (worstIssueTime < lastIssueTime[which_domain] - tRCD)
+    {
+        worstIssueTime += num_pids*B_WORST;
+        if (worstIssueTime/refresh_interval > temp/refresh_interval)
+            worstIssueTime += tRFC;
+        temp = worstIssueTime;
+    }
+    
+    // Add one extra period
+    worstIssueTime += num_pids*B_WORST;
+    if (worstIssueTime/refresh_interval > temp/refresh_interval)
+        worstIssueTime += tRFC;
+    
+    temp = worstIssueTime;
+    while (worstIssueTime <= busPacket->timeAdded + B_WORST)
+    {
+        worstIssueTime += num_pids*B_WORST;
+        if (worstIssueTime/refresh_interval > temp/refresh_interval)
+            worstIssueTime += tRFC;
+        temp = worstIssueTime;
+    }
+    
+    if (busPacket->busPacketType != ACTIVATE)
+        worstIssueTime += tRCD;
+    
+    return worstIssueTime;
+}
+
+unsigned CommandQueue::calExpectTime(BusPacket *busPacket)
+{
+    unsigned which_domain = busPacket->srcId;
+    
+    unsigned expectIssueTime = lastIssueTime[which_domain] - tRCD;
+
+    while(expectIssueTime <= busPacket->timeAdded || expectIssueTime <= lastIssueTime[which_domain] - tRCD)
+    {
+        expectIssueTime += num_pids*DYNAMIC_B;
+    }
+
+    if (busPacket->busPacketType != ACTIVATE)
+        expectIssueTime += tRCD;
+    
+    return expectIssueTime;
 }
