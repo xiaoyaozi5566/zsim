@@ -706,7 +706,7 @@ void MemoryController::update()
         {
             for (int j=queueSize-1;j>=0;j--)
             {
-                unsigned returnTime = returnTransaction[j]->issueTime + DYNAMIC_D;
+                unsigned returnTime = returnTransaction[j]->issueTime;
                 unsigned worstTime = returnTransaction[j]->w_issueTime + B_WORST + B_WORST;
                 unsigned srcId = returnTransaction[j]->srcId;
                 // return this transaction

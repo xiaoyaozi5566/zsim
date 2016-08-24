@@ -83,6 +83,8 @@ public:
     void delay(unsigned domain, unsigned adjust_delay);
     unsigned calWorstTime(BusPacket *busPacket);
     unsigned calExpectTime(BusPacket *busPacket);
+    void resetMonitoring(unsigned domain);
+    void increaseD(unsigned domain);
 
 	//fields
 	
@@ -139,6 +141,8 @@ protected:
     vector<uint64_t> lastWorstTime;
     vector<uint64_t> perDomainTrans;
     vector<uint64_t> perDomainVios;
+    vector<uint64_t> perDomainB;
+    vector<uint64_t> perDomainD;
 
 	bool sendAct;
 };
