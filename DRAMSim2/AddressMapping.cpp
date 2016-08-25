@@ -126,7 +126,7 @@ void addressMapping(uint64_t physicalAddress, unsigned num_pids, uint32_t srcId,
     {
         bankBitWidth = bankBitWidth - dramsim_log2(num_pids);
     }
-    else if (schedulingPolicy == RankPar)
+    else if (schedulingPolicy == RankPar || USE_RANK_PAR)
     {
         rankBitWidth = rankBitWidth - dramsim_log2(num_pids);
     }
@@ -357,7 +357,7 @@ void addressMapping(uint64_t physicalAddress, unsigned num_pids, uint32_t srcId,
     {
         newTransactionBank = newTransactionBank + srcId*(NUM_BANKS/num_pids);
     }
-    else if (schedulingPolicy == RankPar)
+    else if (schedulingPolicy == RankPar || USE_RANK_PAR)
     {
         newTransactionRank = newTransactionRank + srcId*(NUM_RANKS/num_pids);
     }

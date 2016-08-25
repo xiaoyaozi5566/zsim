@@ -151,7 +151,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 
 	//add to return read data queue
 	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data, bpacket->srcId));
-    returnTransaction.back()->issueTime = bpacket->issueTime - tRCD;
+    returnTransaction.back()->issueTime = bpacket->issueTime;
     returnTransaction.back()->w_issueTime = bpacket->w_issueTime - tRCD;
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 

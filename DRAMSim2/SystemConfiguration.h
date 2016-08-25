@@ -80,6 +80,7 @@ extern bool VIS_FILE_OUTPUT;
 extern bool USE_RANDOM_ADDR;
 extern bool USE_BETTER_SCHEDULE;
 extern bool USE_MIX;
+extern bool USE_RANK_PAR;
 
 extern uint64_t TOTAL_STORAGE;
 extern unsigned NUM_BANKS;
