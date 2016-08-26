@@ -81,8 +81,8 @@ public:
     unsigned getCurrentDomain();
     unsigned* selectRanks(pair <unsigned, unsigned> * rankRequests, unsigned num_ranks);
     void delay(unsigned domain, unsigned adjust_delay);
-    unsigned calWorstTime(BusPacket *busPacket);
-    unsigned calExpectTime(BusPacket *busPacket);
+    uint64_t calWorstTime(BusPacket *busPacket);
+    uint64_t calExpectTime(BusPacket *busPacket);
     void resetMonitoring(unsigned domain);
     void increaseD(unsigned domain);
 
@@ -108,7 +108,7 @@ protected:
 	vector< vector<unsigned> > tFAWCountdown;
 	vector< vector<unsigned> > rowAccessCounters;
     vector< vector<BusPacket *> > cmdBuffer;
-    vector< vector<unsigned> > issue_time;
+    vector< vector<uint64_t> > issue_time;
     vector< vector<unsigned> > rankStats;
     vector< vector<unsigned> > conflictStats;
     vector< vector< pair<unsigned, uint64_t> > > issueHistory;

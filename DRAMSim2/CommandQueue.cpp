@@ -120,7 +120,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
     {
         BusPacket1D perRankQueue = BusPacket1D();
         cmdBuffer.push_back(perRankQueue);
-        vector<unsigned> perRankTime;
+        vector<uint64_t> perRankTime;
         issue_time.push_back(perRankTime);
     }
     
@@ -218,7 +218,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
         perDomainTotal[srcId]++;
         rankStats[srcId][rank]++;
         unsigned period = turn_length*num_pids;
-        unsigned period_start = (currentClockCycle/period)*period;
+        size_t period_start = (currentClockCycle/period)*period;
         unsigned next_turn;
         if (period_start + srcId*turn_length > currentClockCycle)
             next_turn = period_start + srcId*turn_length;
@@ -496,8 +496,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             tempBanks[order] = bank;
                             // printf("rank %d, tempBanks[%d]=%d\n", tempRanks[i], order, bank);
                             
-                            unsigned activate_time = currentClockCycle + order*BTB_DELAY + i*BTR_DELAY;
-                            unsigned rdwr_time = activate_time + tRCD;
+                            uint64_t activate_time = currentClockCycle + order*BTB_DELAY + i*BTR_DELAY;
+                            uint64_t rdwr_time = activate_time + tRCD;
                             banksToAccess.insert(bank);
                             // printf("will issue bank %d @ position %d\n", bank, j);
                             items_to_remove.push_back(j);
@@ -578,8 +578,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         {
                             if (queue[j]->busPacketType==ACTIVATE)
                             {
-                                unsigned activate_time = currentClockCycle - (currentClockCycle%turn_length) + BTB_DELAY + order*BTR_DELAY;
-                                unsigned rdwr_time = activate_time + tRCD;
+                                uint64_t activate_time = currentClockCycle - (currentClockCycle%turn_length) + BTB_DELAY + order*BTR_DELAY;
+                                uint64_t rdwr_time = activate_time + tRCD;
                                 cmdBuffer[order].push_back(queue[j]);
                                 cmdBuffer[order].push_back(queue[j+1]);
                                 issue_time[order].push_back(activate_time);
@@ -667,8 +667,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         unsigned bank = queue[j]->bank;
                         if (bank % 3 == bank_group && queue[j]->busPacketType==ACTIVATE)
                         {
-                            unsigned activate_time = currentClockCycle;
-                            unsigned rdwr_time = activate_time + tRCD;
+                            uint64_t activate_time = currentClockCycle;
+                            uint64_t rdwr_time = activate_time + tRCD;
                             cmdBuffer[0].push_back(queue[j]);
                             cmdBuffer[0].push_back(queue[j+1]);
                             queue.erase(queue.begin() + j + 1);
@@ -739,8 +739,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     {
                         if (queue[j]->busPacketType==ACTIVATE)
                         {
-                            unsigned activate_time = currentClockCycle;
-                            unsigned rdwr_time = activate_time + tRCD;
+                            uint64_t activate_time = currentClockCycle;
+                            uint64_t rdwr_time = activate_time + tRCD;
                             cmdBuffer[0].push_back(queue[j]);
                             cmdBuffer[0].push_back(queue[j+1]);
                             queue.erase(queue.begin() + j + 1);
@@ -811,8 +811,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     {
                         if (queue[j]->busPacketType==ACTIVATE)
                         {
-                            unsigned activate_time = currentClockCycle;
-                            unsigned rdwr_time = activate_time + tRCD;
+                            uint64_t activate_time = currentClockCycle;
+                            uint64_t rdwr_time = activate_time + tRCD;
                             cmdBuffer[0].push_back(queue[j]);
                             cmdBuffer[0].push_back(queue[j+1]);
                             queue.erase(queue.begin() + j + 1);
@@ -896,8 +896,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 }
                             }
                             if (!canIssue) continue;
-                            unsigned activate_time = currentClockCycle;
-                            unsigned rdwr_time = activate_time + tRCD;
+                            uint64_t activate_time = currentClockCycle;
+                            uint64_t rdwr_time = activate_time + tRCD;
                             cmdBuffer[0].push_back(queue[j]);
                             cmdBuffer[0].push_back(queue[j+1]);                        
                             issue_time[0].push_back(activate_time);
@@ -1075,8 +1075,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 }
                             }
                             if (!canIssue) continue;
-                            unsigned activate_time = currentClockCycle;
-                            unsigned rdwr_time = activate_time + tRCD;
+                            uint64_t activate_time = currentClockCycle;
+                            uint64_t rdwr_time = activate_time + tRCD;
                             cmdBuffer[0].push_back(queue[j]);
                             cmdBuffer[0].push_back(queue[j+1]);                        
                             issue_time[0].push_back(activate_time);
@@ -1276,8 +1276,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 }
                             }
                             if (!canIssue) continue;
-                            unsigned activate_time = currentClockCycle;
-                            unsigned rdwr_time = activate_time + tRCD;
+                            uint64_t activate_time = currentClockCycle;
+                            uint64_t rdwr_time = activate_time + tRCD;
                             cmdBuffer[0].push_back(queue[j]);
                             cmdBuffer[0].push_back(queue[j+1]);
                             issueHistory[current_domain].push_back(make_pair(currentClockCycle, queue[j]->physicalAddress));
@@ -1458,10 +1458,10 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 {
                                     if (packet->busPacketType != ACTIVATE && isIssuable(packet))
                                     {
-                                        unsigned expectIssueTime = calExpectTime(queue[0]);                    
-                                        unsigned worstIssueTime = calWorstTime(queue[0]);
+                                        uint64_t expectIssueTime = calExpectTime(queue[0]);                    
+                                        uint64_t worstIssueTime = calWorstTime(queue[0]);
                         
-                                        unsigned adjust_delay = 0;
+                                        uint64_t adjust_delay = 0;
                                         if (queue[0]->busPacketType != ACTIVATE)
                                         {
                                             lastIssueTime[i] = expectIssueTime;
@@ -1559,10 +1559,10 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     if (queue.empty()) secure_mode = false;
                     else if (isIssuable(queue[0]))
                     {
-                        unsigned expectIssueTime = calExpectTime(queue[0]);                    
-                        unsigned worstIssueTime = calWorstTime(queue[0]);
+                        uint64_t expectIssueTime = calExpectTime(queue[0]);                    
+                        uint64_t worstIssueTime = calWorstTime(queue[0]);
                         
-                        unsigned adjust_delay = 0;
+                        uint64_t adjust_delay = 0;
                         if (queue[0]->busPacketType != ACTIVATE)
                         {
                             lastIssueTime[secure_domain] = expectIssueTime;
@@ -1624,12 +1624,12 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 }
                 if (!foundIssuable)
                 {
-                    unsigned which_domain = 0;
-                    unsigned min_issueTime_D = 0;
+                    uint64_t which_domain = 0;
+                    uint64_t min_issueTime_D = 0;
                     for (size_t i=0;i<num_pids;i++)
                     {
-                        unsigned which_rank = 0;
-                        unsigned min_timeAdded = 0;
+                        uint64_t which_rank = 0;
+                        uint64_t min_timeAdded = 0;
                         for (size_t j=0;j<NUM_RANKS;j++)
                         {
                             vector<BusPacket *> &queue = getCommandQueue(j, i);
@@ -1652,8 +1652,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         {
                             vector<BusPacket *> &queue = getCommandQueue(which_rank, i);
                             
-                            unsigned expectIssueTime = calExpectTime(queue[0]);
-                            unsigned worstIssueTime = calWorstTime(queue[0]);
+                            uint64_t expectIssueTime = calExpectTime(queue[0]);
+                            uint64_t worstIssueTime = calWorstTime(queue[0]);
                             
                             if (queue[0]->busPacketType == ACTIVATE && secure_mode == false &&
                                     worstIssueTime <= currentClockCycle + B_WORST)
@@ -1664,8 +1664,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 printf("addr %lx from %d enter secure mode\n", queue[0]->physicalAddress, queue[0]->srcId);
                                 printf("secure_rank %ld, secure_domain %ld\n", secure_rank, secure_domain);
                                 printf("currentClockCycle: %ld\n", currentClockCycle);
-                                printf("expected issue time: %d\n", expectIssueTime);
-                                printf("worst issue time: %d\n", worstIssueTime);
+                                printf("expected issue time: %ld\n", expectIssueTime);
+                                printf("worst issue time: %ld\n", worstIssueTime);
                             }
                             
                             if (!((which_rank == refreshRank) && refreshWaiting && queue[0]->busPacketType == ACTIVATE))
@@ -1706,8 +1706,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                     // there is some request being selected from all domains
                     if (min_issueTime_D != 0)
                     {
-                        unsigned which_rank = 0;
-                        unsigned min_timeAdded = 0;
+                        uint64_t which_rank = 0;
+                        uint64_t min_timeAdded = 0;
                         for (size_t j=0;j<NUM_RANKS;j++)
                         {
                             vector<BusPacket *> &queue = getCommandQueue(j, which_domain);
@@ -1727,8 +1727,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         }
                         vector<BusPacket *> &queue = getCommandQueue(which_rank, which_domain);
                         
-                        unsigned expectIssueTime = calExpectTime(queue[0]);                        
-                        unsigned worstIssueTime = calWorstTime(queue[0]);
+                        uint64_t expectIssueTime = calExpectTime(queue[0]);                        
+                        uint64_t worstIssueTime = calWorstTime(queue[0]);
                         
                         if (secure_mode)
                         {
@@ -1750,7 +1750,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                     exit(0);
                                 }
                                 
-                                unsigned adjust_delay = 0;
+                                uint64_t adjust_delay = 0;
                                 if (delayed_cycles > 0) 
                                 {
                                     perDomainVios[which_domain]++;  
@@ -1790,7 +1790,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         }
                         else
                         {   
-                            unsigned adjust_delay = 0;
+                            uint64_t adjust_delay = 0;
                             if (queue[0]->busPacketType != ACTIVATE)
                             {
                                 lastIssueTime[which_domain] = expectIssueTime;
@@ -2645,14 +2645,14 @@ void CommandQueue::delay(unsigned domain, unsigned adjust_delay)
     }
 }
 
-unsigned CommandQueue::calWorstTime(BusPacket *busPacket)
+uint64_t CommandQueue::calWorstTime(BusPacket *busPacket)
 {
     // calculate worst issue time
     unsigned which_domain = busPacket->srcId;
-    unsigned worstIssueTime;
+    uint64_t worstIssueTime;
     unsigned refresh_interval = int(REFRESH_PERIOD/tCK/NUM_RANKS);
     
-    int preWorstTime = lastWorstTime[which_domain] - num_pids*B_WORST - tRFC;
+    int64_t preWorstTime = lastWorstTime[which_domain] - num_pids*B_WORST - tRFC;
     if (preWorstTime > 0) 
     {
         if (preWorstTime/refresh_interval == lastWorstTime[which_domain]/refresh_interval)
@@ -2662,7 +2662,7 @@ unsigned CommandQueue::calWorstTime(BusPacket *busPacket)
         preWorstTime = lastWorstTime[which_domain];
     
     worstIssueTime = preWorstTime;
-    unsigned temp = worstIssueTime;
+    uint64_t temp = worstIssueTime;
     while (worstIssueTime < lastIssueTime[which_domain] - tRCD)
     {
         worstIssueTime += num_pids*B_WORST;
@@ -2691,11 +2691,11 @@ unsigned CommandQueue::calWorstTime(BusPacket *busPacket)
     return worstIssueTime;
 }
 
-unsigned CommandQueue::calExpectTime(BusPacket *busPacket)
+uint64_t CommandQueue::calExpectTime(BusPacket *busPacket)
 {
     unsigned which_domain = busPacket->srcId;
     
-    unsigned expectIssueTime = lastIssueTime[which_domain] - tRCD;
+    uint64_t expectIssueTime = lastIssueTime[which_domain] - tRCD;
 
     while(expectIssueTime <= busPacket->timeAdded || expectIssueTime <= lastIssueTime[which_domain] - tRCD)
     {

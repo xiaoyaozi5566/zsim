@@ -706,8 +706,7 @@ void MemoryController::update()
         {
             for (int j=queueSize-1;j>=0;j--)
             {
-                unsigned returnTime = returnTransaction[j]->issueTime;
-                unsigned worstTime = returnTransaction[j]->w_issueTime + B_WORST + B_WORST;
+                uint64_t returnTime = returnTransaction[j]->issueTime;
                 unsigned srcId = returnTransaction[j]->srcId;
                 // return this transaction
                 if (returnTime == currentClockCycle)
@@ -760,7 +759,7 @@ void MemoryController::update()
                 }
                 else if (returnTime < currentClockCycle)
                 {
-                    printf("Error! addr: %lx, domain: %d, returnTime: %d, currentClockCycle: %ld\n", returnTransaction[j]->address, returnTransaction[j]->srcId, returnTime, currentClockCycle);
+                    printf("Error! addr: %lx, domain: %d, returnTime: %ld, currentClockCycle: %ld\n", returnTransaction[j]->address, returnTransaction[j]->srcId, returnTime, currentClockCycle);
                     exit(0);
                 }
             }
