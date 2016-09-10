@@ -161,6 +161,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
     perDomainVios = vector<uint64_t>(num_pids, 0);
     perDomainB = vector<uint64_t>(num_pids, DYNAMIC_B);
     perDomainD = vector<uint64_t>(num_pids, DYNAMIC_D);
+    perDomainCurD = vector<uint64_t>(num_pids, DYNAMIC_D);
     
     for (size_t i=0;i<num_pids;i++)
     {
@@ -1470,7 +1471,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                             if (perDomainVios[i] > VIO_LIMIT)
                                                 expectRespTime = worstIssueTime - tRCD + B_WORST + B_WORST;
                                             else
-                                                expectRespTime = expectIssueTime - tRCD + perDomainD[i];
+                                                expectRespTime = expectIssueTime - tRCD + perDomainCurD[i];
                                             
                                             int delayed_cycles = (currentClockCycle + RL + BL/2) - expectRespTime + 1;
                                             
@@ -1483,6 +1484,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                             if (delayed_cycles > 0) 
                                             {
                                                 perDomainVios[i]++;
+                                                updateCurD(i);
                                                 if (perDomainVios[i] == VIO_LIMIT)
                                                     increaseD(i);
                                                 if (delayed_cycles < DELAY_1)
@@ -1507,7 +1509,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                             lastIssueTime[i] = worstIssueTime;
                                         }
                                         else
-                                            queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainD[i];
+                                            queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainCurD[i];
                                         queue[0]->w_issueTime = worstIssueTime;
                                         
                                         *busPacket = packet;
@@ -1571,7 +1573,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             if (perDomainVios[secure_domain] > VIO_LIMIT)
                                 expectRespTime = worstIssueTime - tRCD + B_WORST + B_WORST;
                             else
-                                expectRespTime = expectIssueTime - tRCD + perDomainD[secure_domain];
+                                expectRespTime = expectIssueTime - tRCD + perDomainCurD[secure_domain];
                             
                             int delayed_cycles = (currentClockCycle + RL + BL/2) - expectRespTime + 1;
                             
@@ -1584,6 +1586,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             if (delayed_cycles > 0) 
                             {
                                 perDomainVios[secure_domain]++;
+                                updateCurD(secure_domain);
                                 if (perDomainVios[secure_domain] == VIO_LIMIT)
                                     increaseD(secure_domain);
                                 if (delayed_cycles < DELAY_1)
@@ -1608,7 +1611,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         if (perDomainVios[secure_domain] > VIO_LIMIT)
                             queue[0]->issueTime = worstIssueTime - tRCD + B_WORST + B_WORST;
                         else
-                            queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainD[secure_domain];
+                            queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainCurD[secure_domain];
                         queue[0]->w_issueTime = worstIssueTime;
                         
                         if (queue[0]->busPacketType != ACTIVATE)
@@ -1740,7 +1743,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 if (perDomainVios[which_domain] > VIO_LIMIT)
                                     expectRespTime = worstIssueTime - tRCD + B_WORST + B_WORST;
                                 else
-                                    expectRespTime = expectIssueTime - tRCD + perDomainD[which_domain];
+                                    expectRespTime = expectIssueTime - tRCD + perDomainCurD[which_domain];
                             
                                 int delayed_cycles = (currentClockCycle + RL + BL/2) - expectRespTime + 1;
                             
@@ -1753,7 +1756,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 uint64_t adjust_delay = 0;
                                 if (delayed_cycles > 0) 
                                 {
-                                    perDomainVios[which_domain]++;  
+                                    perDomainVios[which_domain]++;
+                                    updateCurD(which_domain);  
                                     if (perDomainVios[which_domain] == VIO_LIMIT)
                                         increaseD(which_domain);                                  
                                     if (delayed_cycles < DELAY_1)
@@ -1777,7 +1781,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                     lastIssueTime[which_domain] = worstIssueTime;
                                 }
                                 else
-                                    queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainD[which_domain];
+                                    queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainCurD[which_domain];
                                 queue[0]->w_issueTime = worstIssueTime;
                                 *busPacket = queue[0];
                                 queue.erase(queue.begin());
@@ -1799,7 +1803,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 if (perDomainVios[which_domain] > VIO_LIMIT)
                                     expectRespTime = worstIssueTime - tRCD + B_WORST + B_WORST;
                                 else
-                                    expectRespTime = expectIssueTime - tRCD + perDomainD[which_domain];
+                                    expectRespTime = expectIssueTime - tRCD + perDomainCurD[which_domain];
                             
                                 int delayed_cycles = (currentClockCycle + RL + BL/2) - expectRespTime + 1;
                             
@@ -1812,6 +1816,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 if (delayed_cycles > 0) 
                                 {
                                     perDomainVios[which_domain]++;
+                                    updateCurD(which_domain);
                                     if (perDomainVios[which_domain] == VIO_LIMIT)
                                         increaseD(which_domain);
                                     if (delayed_cycles < DELAY_1)
@@ -1835,7 +1840,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             if (perDomainVios[which_domain] > VIO_LIMIT)
                                 queue[0]->issueTime = worstIssueTime + B_WORST + B_WORST;
                             else
-                                queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainD[which_domain];
+                                queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainCurD[which_domain];
                             queue[0]->w_issueTime = worstIssueTime;
                             *busPacket = queue[0];
                             queue.erase(queue.begin());
@@ -2710,24 +2715,39 @@ uint64_t CommandQueue::calExpectTime(BusPacket *busPacket)
 
 void CommandQueue::resetMonitoring(unsigned domain)
 {
-    // if (perDomainVios[domain] == 0)
-    // {
-    //     if (perDomainD[domain] > 10)
-    //         perDomainD[domain] -= 10;
-    // }
-    // else if (perDomainVios[domain] > VIO_LIMIT)
-    // {
-    //     perDomainD[domain] += 10;
-    // }
+    unsigned unit = (VIO_LIMIT + 1)/4;
+    if (perDomainVios[domain] == 0)
+    {
+        if (perDomainD[domain] > 10)
+            perDomainD[domain] -= 10;
+    }
+    else if (perDomainVios[domain] >= VIO_LIMIT)
+    {
+        perDomainD[domain] += 10;
+    }
     perDomainTrans[domain] = 0;
     perDomainVios[domain] = 0;
     
-    perDomainD[domain] = DYNAMIC_D;
+    perDomainCurD[domain] = perDomainD[domain];
     
     printf("domain %d new D value: %ld\n", domain, perDomainD[domain]);
 }
 
 void CommandQueue::increaseD(unsigned domain)
 {
-    perDomainD[domain] += 32;
+    perDomainCurD[domain] = 192;
+}
+
+void CommandQueue::updateCurD(unsigned domain)
+{
+    unsigned num_vios = perDomainVios[domain];
+    unsigned unit = (VIO_LIMIT + 1)/4;
+    if (num_vios < unit)
+        perDomainCurD[domain] = perDomainD[domain];
+    else if (num_vios < 2*unit)
+        perDomainCurD[domain] = perDomainD[domain] + 10;
+    else if (num_vios < VIO_LIMIT)
+        perDomainCurD[domain] = perDomainD[domain] + 20;
+    else if (num_vios == VIO_LIMIT)
+        perDomainCurD[domain] = 192;
 }

@@ -85,6 +85,7 @@ public:
     uint64_t calExpectTime(BusPacket *busPacket);
     void resetMonitoring(unsigned domain);
     void increaseD(unsigned domain);
+    void updateCurD(unsigned domain);
 
 	//fields
 	
@@ -143,6 +144,7 @@ protected:
     vector<uint64_t> perDomainVios;
     vector<uint64_t> perDomainB;
     vector<uint64_t> perDomainD;
+    vector<uint64_t> perDomainCurD;
 
 	bool sendAct;
 };
