@@ -18,11 +18,12 @@ QUEUING_STRUCTURE=per_rank_per_domain			;per_rank or per_rank_per_bank
 USE_RANDOM_ADDR=true                            ;use random address mapping
 USE_BETTER_SCHEDULE=false                        ;use better schedule
 USE_MIX=false                                     ;use mix policy (side_channel and sec_mem)
-DYNAMIC_B=6;  
-DYNAMIC_D=64;
-NUM_ACCESSES=10000;
-VIO_LIMIT=3;
+DYNAMIC_B=3;  
+DYNAMIC_D=24;
+NUM_ACCESSES=1000;
+VIO_LIMIT=1000;
 USE_RANK_PAR=true                               ;use rank partitioning
+USE_BANK_PAR=false                               ;use bank partitioning
 
 ;for true/false, please use all lowercase
 DEBUG_TRANS_Q=false

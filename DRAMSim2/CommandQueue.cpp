@@ -1492,7 +1492,12 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                                 else if (delayed_cycles < DELAY_2)
                                                     adjust_delay = DELAY_2;
                                                 else
-                                                    adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                                {
+                                                    // adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                                    adjust_delay = worstIssueTime - tRCD + B_WORST + B_WORST - expectIssueTime - perDomainCurD[i];
+                                                    printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+                                                    printf("currentClockCycle: %ld, timeAdded: %ld, expectIssueTime: %ld, adjust_delay: %ld, worstIssueTime: %ld, delayed_cycles: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime, delayed_cycles);
+                                                }
                                 
                                                 lastIssueTime[i] += adjust_delay;
                                             }
@@ -1594,7 +1599,12 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 else if (delayed_cycles < DELAY_2)
                                     adjust_delay = DELAY_2;
                                 else
-                                    adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                {
+                                    // adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                    adjust_delay = worstIssueTime - tRCD + B_WORST + B_WORST - expectIssueTime - perDomainCurD[secure_domain];
+                                    printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+                                    printf("currentClockCycle: %ld, timeAdded: %ld, expectIssueTime: %ld, adjust_delay: %ld, worstIssueTime: %ld, delayed_cycles: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime, delayed_cycles);
+                                }
                                 
                                 lastIssueTime[secure_domain] += adjust_delay;
                             }
@@ -1765,7 +1775,12 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                     else if (delayed_cycles < DELAY_2)
                                         adjust_delay = DELAY_2;
                                     else
-                                        adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                    {
+                                        // adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                        adjust_delay = worstIssueTime - tRCD + B_WORST + B_WORST - expectIssueTime - perDomainCurD[which_domain];
+                                        printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+                                        printf("currentClockCycle: %ld, timeAdded: %ld, expectIssueTime: %ld, adjust_delay: %ld, worstIssueTime: %ld, delayed_cycles: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime, delayed_cycles);
+                                    }
                                     
                                     lastIssueTime[which_domain] += adjust_delay;
                                 }
@@ -1824,7 +1839,12 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                     else if (delayed_cycles < DELAY_2)
                                         adjust_delay = DELAY_2;
                                     else
-                                        adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                    {
+                                        // adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                        adjust_delay = worstIssueTime - tRCD + B_WORST + B_WORST - expectIssueTime - perDomainCurD[which_domain];
+                                        printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+                                        printf("currentClockCycle: %ld, timeAdded: %ld, expectIssueTime: %ld, adjust_delay: %ld, worstIssueTime: %ld, delayed_cycles: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime, delayed_cycles);
+                                    }
                                     
                                     lastIssueTime[which_domain] += adjust_delay;
                                 }
@@ -2716,15 +2736,15 @@ uint64_t CommandQueue::calExpectTime(BusPacket *busPacket)
 void CommandQueue::resetMonitoring(unsigned domain)
 {
     unsigned unit = (VIO_LIMIT + 1)/4;
-    if (perDomainVios[domain] == 0)
-    {
-        if (perDomainD[domain] > 10)
-            perDomainD[domain] -= 10;
-    }
-    else if (perDomainVios[domain] >= VIO_LIMIT)
-    {
-        perDomainD[domain] += 10;
-    }
+    // if (perDomainVios[domain] == 0)
+    // {
+    //     if (perDomainD[domain] > 10)
+    //         perDomainD[domain] -= 10;
+    // }
+    // else if (perDomainVios[domain] >= VIO_LIMIT)
+    // {
+    //     perDomainD[domain] += 10;
+    // }
     perDomainTrans[domain] = 0;
     perDomainVios[domain] = 0;
     
@@ -2742,12 +2762,12 @@ void CommandQueue::updateCurD(unsigned domain)
 {
     unsigned num_vios = perDomainVios[domain];
     unsigned unit = (VIO_LIMIT + 1)/4;
-    if (num_vios < unit)
-        perDomainCurD[domain] = perDomainD[domain];
-    else if (num_vios < 2*unit)
-        perDomainCurD[domain] = perDomainD[domain] + 10;
-    else if (num_vios < VIO_LIMIT)
-        perDomainCurD[domain] = perDomainD[domain] + 20;
-    else if (num_vios == VIO_LIMIT)
-        perDomainCurD[domain] = 192;
+    // if (num_vios < unit)
+    //     perDomainCurD[domain] = perDomainD[domain];
+    // else if (num_vios < 2*unit)
+    //     perDomainCurD[domain] = perDomainD[domain] + 10;
+    // else if (num_vios < VIO_LIMIT)
+    //     perDomainCurD[domain] = perDomainD[domain] + 20;
+    // else if (num_vios == VIO_LIMIT)
+    //     perDomainCurD[domain] = 192;
 }

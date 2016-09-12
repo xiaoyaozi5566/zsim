@@ -122,7 +122,7 @@ void addressMapping(uint64_t physicalAddress, unsigned num_pids, uint32_t srcId,
         physicalAddress = random_addr;
     }
     
-    if (schedulingPolicy == BankPar)
+    if (schedulingPolicy == BankPar || USE_BANK_PAR)
     {
         bankBitWidth = bankBitWidth - dramsim_log2(num_pids);
     }
@@ -353,7 +353,7 @@ void addressMapping(uint64_t physicalAddress, unsigned num_pids, uint32_t srcId,
 				<<" Col="<<newTransactionColumn<<"\n"); 
 	}
     
-    if (schedulingPolicy == BankPar)
+    if (schedulingPolicy == BankPar || USE_BANK_PAR)
     {
         newTransactionBank = newTransactionBank + srcId*(NUM_BANKS/num_pids);
     }

@@ -23,6 +23,7 @@ DYNAMIC_D=43;
 NUM_ACCESSES=1000;
 VIO_LIMIT=3;
 USE_RANK_PAR=false                               ;use rank partitioning
+USE_BANK_PAR=false                               ;use bank partitioning
 
 ;for true/false, please use all lowercase
 DEBUG_TRANS_Q=false
