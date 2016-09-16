@@ -12,6 +12,7 @@ scriptgen_dir = zsim_home + "/scriptgen"
 results_dir = zsim_home + "/results"
 stdout_dir = zsim_home + "/stdout"
 stderr_dir = zsim_home + "/stderr"
+dramsim_dir = zsim_home + "/DRAMSim2"
 
 techIni = "/home/yw438/zsim/DRAMSim2/ini/DDR3_micron_64M_8B_x4_sg15.ini"
 systemIni_sec = "/home/yw438/zsim/DRAMSim2/system.ini.sec"
@@ -318,7 +319,7 @@ if not os.path.exists(stdout_dir):
 if not os.path.exists(stderr_dir):
     os.makedirs(stderr_dir)
 
-def multiprogs_DRAMSim2():
+def multiprogs_DRAMSim2(period=0):
     for workload in workloads:
         name = ""
         for bench in workload:
@@ -334,9 +335,10 @@ def multiprogs_DRAMSim2():
         if not os.path.exists(stderr_folder):
             os.makedirs(stderr_folder)
         # create config file
-        filename = name + ".cfg"
+        filename = name + "_" + str(period) + ".cfg"
         config_file = open(scriptgen_dir + "/" + filename, "w")
         config =  "sim = {\n"
+        config += "    gmMBytes = 2048;\n"
         config += "    phaseLength = 10000;\n"
         config += "    maxProcEventualDumps = " + str(len(workload)) + ";\n"
         config += "    statsPhaseInterval = 10000;\n};\n\n"
@@ -396,20 +398,20 @@ def multiprogs_DRAMSim2():
         config_file.write("%s\n" % config)
         config_file.close()
         # create run script
-        filename = name + ".sh"
+        filename = name + "_" + str(period) + ".sh"
         bash_file = open(scriptgen_dir + "/" + filename, "w")
         command = "#!/bin/bash\n\n"
-        command += zsim_home + "/build/opt/zsim " + scriptgen_dir + "/" + name + ".cfg " + result_folder + "\n"
+        command += zsim_home + "/build/opt/zsim " + scriptgen_dir + "/" + name + "_" + str(period) + ".cfg " + result_folder + "\n"
         os.system("chmod +x " + scriptgen_dir + "/" + filename)
         
         bash_file.write("%s\n" % command)
         bash_file.close()
         # create submit script
-        filename = name + ".sub"
+        filename = name + "_" + str(period) + ".sub"
         submit_file = open(scriptgen_dir + "/" + filename, "w")
         env = "Universe = Vanilla\n"
         env += "getenv = True\n"
-        env += "Executable = " + scriptgen_dir + "/" + name + ".sh\n"
+        env += "Executable = " + scriptgen_dir + "/" + name + "_" + str(period) + ".sh\n"
         env += "Output = " + stdout_folder + "/" + name + ".out\n"
         env += "Error = " + stderr_folder + "/" + name + ".err\n"
         env += "Log = " + stdout_folder + "/" + name + ".log\n"
@@ -419,7 +421,7 @@ def multiprogs_DRAMSim2():
         submit_file.close()
         
         os.system("condor_submit " + scriptgen_dir + "/" + filename)
-        time.sleep(2)
+        # time.sleep(2)
 
 def multiprogs_parsec():
     for workload in workloads:
@@ -704,7 +706,52 @@ def singleprogs_parsec():
         submit_file.close()
         
         os.system("condor_submit " + scriptgen_dir + "/" + filename)
-                
+
+def generate_ini(limit, period):
+    filename = "system.ini.dynamic." + str(limit) + "." + str(period)
+    # create ini file
+    ini_file = open(dramsim_dir + "/" + filename, "w")
+    ini =  "NUM_CHANS=1\n"
+    ini += "JEDEC_DATA_BUS_BITS=64\n"
+    ini += "TRANS_QUEUE_DEPTH=32\n"
+    ini += "CMD_QUEUE_DEPTH=32\n"
+    ini += "BTB_DELAY=18\n"
+    ini += "BTR_DELAY=6\n"
+    ini += "RETURN_DELAY=50\n"
+    ini += "TURN_LENGTH=43\n"
+    ini += "WORST_CASE=73\n"
+    ini += "NUM_DIFF_BANKS=2\n"
+    ini += "EPOCH_LENGTH=100000\n"
+    ini += "ROW_BUFFER_POLICY=close_page\n"
+    ini += "ADDRESS_MAPPING_SCHEME=scheme2\n"
+    ini += "SCHEDULING_POLICY=dynamic\n"
+    ini += "QUEUING_STRUCTURE=per_rank_per_domain\n"
+    ini += "USE_RANDOM_ADDR=true\n"
+    ini += "USE_BETTER_SCHEDULE=false\n"
+    ini += "USE_MIX=false\n"
+    ini += "DYNAMIC_B=6\n"
+    ini += "DYNAMIC_D=160\n"
+    ini += "NUM_ACCESSES=" + str(period) + "\n"
+    ini += "VIO_LIMIT=" + str(limit) + "\n"
+    ini += "USE_RANK_PAR=false\n"
+    ini += "USE_BANK_PAR=false\n"
+    ini += "\n"
+    ini += "DEBUG_TRANS_Q=false\n"
+    ini += "DEBUG_CMD_Q=false\n"
+    ini += "DEBUG_ADDR_MAP=false\n"
+    ini += "DEBUG_BUS=false\n"
+    ini += "DEBUG_BANKSTATE=false\n"
+    ini += "DEBUG_BANKS=false\n"
+    ini += "DEBUG_POWER=false\n"
+    ini += "VIS_FILE_OUTPUT=true\n"
+    ini += "\n"
+    ini += "USE_LOW_POWER=false\n"
+    ini += "VERIFICATION_OUTPUT=false\n"
+    ini += "TOTAL_ROW_ACCESSES=4\n"
+    
+    ini_file.write("%s\n" % ini)
+    ini_file.close()
+                    
 # call the function        
 # folder = "single_prog_parsec"
 # systemIni = systemIni_insec
@@ -1251,16 +1298,22 @@ workloads = multiprog_8
 # multiprogs_parsec()
 
 # Dynamic scheduling
-folder = "dynamic_rank_3_64"
+limit = 3
+periods = [1000, 10000, 100000, 1000000]
+name = "dynamic_enforce_DynaBD_6_160_" + str(limit)
+for period in periods:
+    folder = name + "_" + str(period)
 
-if not os.path.exists(results_dir + "/" + folder):
-    os.makedirs(results_dir + "/" + folder)
+    if not os.path.exists(results_dir + "/" + folder):
+        os.makedirs(results_dir + "/" + folder)
 
-if not os.path.exists(stdout_dir + "/" + folder):
-    os.makedirs(stdout_dir + "/" + folder)
+    if not os.path.exists(stdout_dir + "/" + folder):
+        os.makedirs(stdout_dir + "/" + folder)
 
-if not os.path.exists(stderr_dir + "/" + folder):
-    os.makedirs(stderr_dir + "/" + folder)
-
-systemIni = systemIni_dynamic
-multiprogs_DRAMSim2()
+    if not os.path.exists(stderr_dir + "/" + folder):
+        os.makedirs(stderr_dir + "/" + folder)
+        
+    generate_ini(limit, period)
+    systemIni = systemIni_dynamic + "." + str(limit) + "." + str(period)
+    multiprogs_DRAMSim2(period)
+    time.sleep(2)
