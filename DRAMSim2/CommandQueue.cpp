@@ -2736,6 +2736,7 @@ uint64_t CommandQueue::calExpectTime(BusPacket *busPacket)
 void CommandQueue::resetMonitoring(unsigned domain)
 {
     unsigned unit = (VIO_LIMIT + 1)/4;
+    // ========== adjust d ============
     // if (perDomainVios[domain] == 0)
     // {
     //     if (perDomainD[domain] > 10)
@@ -2745,12 +2746,23 @@ void CommandQueue::resetMonitoring(unsigned domain)
     // {
     //     perDomainD[domain] += 10;
     // }
+    // ========== adjust b ============
+    if (perDomainVios[domain] == 0)
+    {
+        if (perDomainB[domain] > 1)
+            perDomainB[domain] -= 1;
+    }
+    else if (perDomainVios[domain] >= VIO_LIMIT)
+    {
+        perDomainB[domain] += 1;
+    }
     perDomainTrans[domain] = 0;
     perDomainVios[domain] = 0;
     
     perDomainCurD[domain] = perDomainD[domain];
     
     printf("domain %d new D value: %ld\n", domain, perDomainD[domain]);
+    printf("domain %d new B value: %ld\n", domain, perDomainB[domain]);
 }
 
 void CommandQueue::increaseD(unsigned domain)
@@ -2762,12 +2774,12 @@ void CommandQueue::updateCurD(unsigned domain)
 {
     unsigned num_vios = perDomainVios[domain];
     unsigned unit = (VIO_LIMIT + 1)/4;
-    // if (num_vios < unit)
-    //     perDomainCurD[domain] = perDomainD[domain];
-    // else if (num_vios < 2*unit)
-    //     perDomainCurD[domain] = perDomainD[domain] + 10;
-    // else if (num_vios < VIO_LIMIT)
-    //     perDomainCurD[domain] = perDomainD[domain] + 20;
-    // else if (num_vios == VIO_LIMIT)
-    //     perDomainCurD[domain] = 192;
+    if (num_vios < unit)
+        perDomainCurD[domain] = perDomainD[domain];
+    else if (num_vios < 2*unit)
+        perDomainCurD[domain] = perDomainD[domain] + 10;
+    else if (num_vios < VIO_LIMIT)
+        perDomainCurD[domain] = perDomainD[domain] + 20;
+    else if (num_vios == VIO_LIMIT)
+        perDomainCurD[domain] = 192;
 }
