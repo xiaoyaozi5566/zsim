@@ -1504,9 +1504,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                             perDomainTrans[i]++;                            
                                         }
 
-
                                         // printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
-//                                         printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
+                                        // printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
                                        
                                         if (perDomainVios[i] > VIO_LIMIT)
                                         {
@@ -1612,7 +1611,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             perDomainTrans[secure_domain]++;
                             
                             // printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
-//                             printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
+                            // printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
                             
                             if (perDomainVios[secure_domain] > VIO_LIMIT)
                                 lastIssueTime[secure_domain] = worstIssueTime;                                
@@ -1788,7 +1787,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 perDomainTrans[which_domain]++;
                                 
                                 // printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
-//                                 printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
+                                // printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
                                 
                                 if (perDomainVios[which_domain] > VIO_LIMIT)
                                 {
@@ -1850,7 +1849,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 }
                                 
                                 // printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
-//                                 printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
+                                // printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
                                 
                                 if (perDomainVios[which_domain] > VIO_LIMIT)
                                     lastIssueTime[which_domain] = worstIssueTime;
@@ -2736,7 +2735,7 @@ uint64_t CommandQueue::calExpectTime(BusPacket *busPacket)
 void CommandQueue::resetMonitoring(unsigned domain)
 {
     unsigned unit = (VIO_LIMIT + 1)/4;
-    // ========== adjust d ============
+    // // ========== adjust d ============
     // if (perDomainVios[domain] == 0)
     // {
     //     if (perDomainD[domain] > 10)
@@ -2767,7 +2766,7 @@ void CommandQueue::resetMonitoring(unsigned domain)
 
 void CommandQueue::increaseD(unsigned domain)
 {
-    perDomainCurD[domain] = 192;
+    if (perDomainCurD[domain] < 192) perDomainCurD[domain] = 192;
 }
 
 void CommandQueue::updateCurD(unsigned domain)
@@ -2781,5 +2780,7 @@ void CommandQueue::updateCurD(unsigned domain)
     else if (num_vios < VIO_LIMIT)
         perDomainCurD[domain] = perDomainD[domain] + 20;
     else if (num_vios == VIO_LIMIT)
-        perDomainCurD[domain] = 192;
+    {
+        if (perDomainCurD[domain] < 192) perDomainCurD[domain] = 192;
+    }
 }
