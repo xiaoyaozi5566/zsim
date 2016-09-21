@@ -162,6 +162,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
     perDomainB = vector<uint64_t>(num_pids, DYNAMIC_B);
     perDomainD = vector<uint64_t>(num_pids, DYNAMIC_D);
     perDomainCurD = vector<uint64_t>(num_pids, DYNAMIC_D);
+    RP_status = vector<bool>(num_pids, false);
     
     for (size_t i=0;i<num_pids;i++)
     {
@@ -1857,7 +1858,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 perDomainTrans[which_domain]++;                                                         
                             }
                             if (perDomainVios[which_domain] > VIO_LIMIT)
-                                queue[0]->issueTime = worstIssueTime + B_WORST + B_WORST;
+                                queue[0]->issueTime = worstIssueTime - tRCD + B_WORST + B_WORST;
                             else
                                 queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainCurD[which_domain];
                             queue[0]->w_issueTime = worstIssueTime;
@@ -1869,6 +1870,363 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 resetMonitoring(which_domain);
                             }  
                         }                 
+                    }
+                }    
+
+                if (currentClockCycle % 1000000 == 0)
+                {
+                    for (size_t i=0;i<num_pids;i++)
+                    {
+                        printf("domain %ld violations: %ld\n", i, perDomainVios[i]);
+                        printf("domain %ld requests: %ld\n", i, perDomainTrans[i]);
+                    }
+                }
+                
+                //if we couldn't find anything to send, return false
+                if (!foundIssuable) return false;
+            }
+        }
+        else if (schedulingPolicy == Dynamic_RP)
+        {
+            bool sendingREF = false;
+            //if the memory controller set the flags signaling that we need to issue a refresh
+            if (refreshWaiting)
+            {
+                bool foundActiveOrTooEarly = false;
+                //look for an open bank
+                for (size_t b=0;b<NUM_BANKS;b++)
+                {
+                    //checks to make sure that all banks are idle
+                    if (bankStates[refreshRank][b].currentBankState == RowActive)
+                    {
+                        foundActiveOrTooEarly = true;
+                        //if the bank is open, make sure there is nothing else
+                        // going there before we close it
+                        for (size_t i=0;i<num_pids;i++)
+                        {
+                            vector<BusPacket *> &queue = getCommandQueue(refreshRank,i);
+                            if (!queue.empty())
+                            {
+                                BusPacket *packet = queue[0];
+                                if (packet->row == bankStates[refreshRank][b].openRowAddress &&
+                                        packet->bank == b)
+                                {
+                                    if (packet->busPacketType != ACTIVATE && isIssuable(packet) && RP_status[refreshRank] == false)
+                                    {
+                                        uint64_t expectIssueTime = calExpectTime(queue[0]);                    
+                                        uint64_t worstIssueTime = calWorstTime(queue[0]);
+                        
+                                        uint64_t adjust_delay = 0;
+                                        if (queue[0]->busPacketType != ACTIVATE)
+                                        {
+                                            lastIssueTime[i] = expectIssueTime;
+                                            lastWorstTime[i] = worstIssueTime - tRCD;
+                                            int expectRespTime;
+                                            
+                                            if (perDomainVios[i] > VIO_LIMIT)
+                                                expectRespTime = worstIssueTime + RL + BL/2;
+                                            else
+                                                expectRespTime = expectIssueTime - tRCD + perDomainCurD[i];
+                                            
+                                            int delayed_cycles = (currentClockCycle + RL + BL/2) - expectRespTime;
+                                            
+                                            if (delayed_cycles > 0 && perDomainVios[i] > VIO_LIMIT)
+                                            {
+                                                printf("Error! violate worst response time\n");
+                                                printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+                                                printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, delayed_cycles: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, delayed_cycles, worstIssueTime);
+                                                exit(0);
+                                            }
+                                            
+                                            if (delayed_cycles > 0) 
+                                            {
+                                                perDomainVios[i]++;
+                                                if (delayed_cycles < DELAY_1)
+                                                    adjust_delay = DELAY_1;
+                                                else if (delayed_cycles < DELAY_2)
+                                                    adjust_delay = DELAY_2;
+                                                else
+                                                {
+                                                    // adjust_delay = worstIssueTime + B_WORST - currentClockCycle;
+                                                    adjust_delay = worstIssueTime + RL + BL/2 - expectIssueTime - perDomainCurD[i];
+                                                    printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+                                                    printf("currentClockCycle: %ld, timeAdded: %ld, expectIssueTime: %ld, adjust_delay: %ld, worstIssueTime: %ld, delayed_cycles: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime, delayed_cycles);
+                                                }
+                                
+                                                lastIssueTime[i] += adjust_delay;
+                                                
+                                                if (perDomainVios[i] > VIO_LIMIT)
+                                                {
+                                                    RP_status[i] = true;
+                                                    printf("Domain %d switch to RP @ cycle %ld\n", i, currentClockCycle);
+                                                }
+                                            }
+                                            perDomainTrans[i]++;                            
+                                        }
+
+                                        // printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+//                                         printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
+                                       
+                                        queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainCurD[i];
+                                        queue[0]->w_issueTime = worstIssueTime;
+                                        
+                                        *busPacket = packet;
+                                        queue.erase(queue.begin());
+                                        sendingREF = true;
+                                        if (perDomainTrans[i] == NUM_ACCESSES)
+                                        {
+                                            resetMonitoring(i);
+                                        }    
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        break;
+                    }
+                    //    NOTE: checks nextActivate time for each bank to make sure tRP is being
+                    //                satisfied.    the next ACT and next REF can be issued at the same
+                    //                point in the future, so just use nextActivate field instead of
+                    //                creating a nextRefresh field
+                    else if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
+                    {
+                        foundActiveOrTooEarly = true;
+                        break;
+                    }
+                }
+
+                //if there are no open banks and timing has been met, send out the refresh
+                //    reset flags and rank pointer
+                if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
+                {
+                    *busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);
+                    // printf("refresh rank %d @ cycle %ld\n", refreshRank, currentClockCycle);
+                    refreshRank = -1;
+                    refreshWaiting = false;
+                    sendingREF = true;
+                }
+            } // refreshWaiting
+
+            //if we're not sending a REF, proceed as normal
+            if (!sendingREF)
+            {
+                bool foundIssuable = false;                
+                // for activantion command
+                unsigned rel_time = currentClockCycle % BTR_DELAY;
+                unsigned current_domain = (currentClockCycle/BTR_DELAY) % num_pids;
+                if (rel_time == 0 && RP_status[current_domain] == true)
+                {
+                    for (size_t i=0;i<NUM_RANKS;i++)
+                    {
+                        if (refreshRank == i) continue;
+                        vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
+                        if (!queue.empty())
+                        {
+                            if (queue[0]->busPacketType==ACTIVATE && isIssuable(queue[0]))
+                            {
+                                *busPacket = queue[0];
+                                queue.erase(queue.begin());
+                                foundIssuable = true;
+                                break;
+                            }
+                        }                     
+                    }
+                }
+                // for rd/wr command
+                current_domain = ((currentClockCycle - tRCD)/BTR_DELAY) % num_pids;
+                if (rel_time == tRCD % BTR_DELAY && RP_status[current_domain] == true)
+                {
+                    for (size_t i=0;i<NUM_RANKS;i++)
+                    {
+                        if (refreshRank == i) continue;
+                        vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
+                        if (!queue.empty())
+                        {
+                            if (queue[0]->busPacketType!=ACTIVATE && isIssuable(queue[0]))
+                            {
+                                queue[0]->issueTime = currentClockCycle + RL + BL/2;
+                                // printf("addr %lx from domain %d issued @ cycle %ld\n", queue[0]->physicalAddress, queue[0]->srcId, currentClockCycle);
+                                lastIssueTime[current_domain] = currentClockCycle;
+                                lastWorstTime[current_domain] = currentClockCycle - tRCD;
+                                *busPacket = queue[0];
+                                queue.erase(queue.begin());
+                                foundIssuable = true;
+                                perDomainTrans[current_domain]++;    
+                                if (perDomainTrans[current_domain] == NUM_ACCESSES)
+                                {
+                                    resetMonitoring(current_domain);
+                                }                           
+                                break;
+                            }
+                        }                    
+                    }
+                }
+                // judge if a rd/wr from another domain can be issued
+                bool other_rdwr = true;
+                current_domain = ((currentClockCycle + BTR_DELAY - tRCD)/BTR_DELAY) % num_pids;
+                vector<BusPacket *> &queue = getCommandQueue(current_domain, current_domain);
+                
+                if (RP_status[current_domain] == true && !queue.empty())
+                    other_rdwr = false;
+                
+                if (!foundIssuable)
+                {
+                    uint64_t which_domain = 0;
+                    uint64_t min_issueTime_D = 0;
+                    for (size_t i=0;i<num_pids;i++)
+                    {
+                        uint64_t which_rank = 0;
+                        uint64_t min_timeAdded = 0;
+                        for (size_t j=0;j<NUM_RANKS;j++)
+                        {
+                            vector<BusPacket *> &queue = getCommandQueue(j, i);
+                            if (!queue.empty() && RP_status[i] == false)
+                            {
+                                if (min_timeAdded == 0)
+                                {
+                                    min_timeAdded = queue[0]->timeAdded;
+                                    which_rank = j;
+                                }
+                                else if (min_timeAdded > queue[0]->timeAdded)
+                                {
+                                    min_timeAdded = queue[0]->timeAdded;
+                                    which_rank = j;
+                                }
+                            }
+                        }
+                        // there is a request from this domain
+                        if (min_timeAdded != 0)
+                        {
+                            vector<BusPacket *> &queue = getCommandQueue(which_rank, i);
+                            
+                            uint64_t expectIssueTime = calExpectTime(queue[0]);
+                            uint64_t worstIssueTime = calWorstTime(queue[0]);
+                            
+                            if (!((which_rank == refreshRank) && refreshWaiting && queue[0]->busPacketType == ACTIVATE))
+                            {
+                                if (queue[0]->busPacketType == ACTIVATE)
+                                {
+                                    if (isIssuable(queue[0]))
+                                    {
+                                        if (min_issueTime_D == 0)
+                                        {
+                                            min_issueTime_D = expectIssueTime;
+                                            which_domain = i;
+                                        }
+                                        else if (min_issueTime_D > expectIssueTime)
+                                        {
+                                            min_issueTime_D = expectIssueTime;
+                                            which_domain = i;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    // makes sure this rd/wr will not delay a RP rd/wr command
+                                    if (other_rdwr == true && isIssuable(queue[0]))
+                                    {
+                                        if (min_issueTime_D == 0)
+                                        {
+                                            min_issueTime_D = expectIssueTime;
+                                            which_domain = i;
+                                        }
+                                        else if (min_issueTime_D > expectIssueTime)
+                                        {
+                                            min_issueTime_D = expectIssueTime;
+                                            which_domain = i;
+                                        }
+                                    }
+                                }
+                            }                      
+                        }
+                    }
+                    // there is some request being selected from all domains
+                    if (min_issueTime_D != 0)
+                    {
+                        uint64_t which_rank = 0;
+                        uint64_t min_timeAdded = 0;
+                        for (size_t j=0;j<NUM_RANKS;j++)
+                        {
+                            vector<BusPacket *> &queue = getCommandQueue(j, which_domain);
+                            if (!queue.empty())
+                            {
+                                if (min_timeAdded == 0)
+                                {
+                                    min_timeAdded = queue[0]->timeAdded;
+                                    which_rank = j;
+                                }
+                                else if (min_timeAdded > queue[0]->timeAdded)
+                                {
+                                    min_timeAdded = queue[0]->timeAdded;
+                                    which_rank = j;
+                                }
+                            }
+                        }
+                        vector<BusPacket *> &queue = getCommandQueue(which_rank, which_domain);
+                        
+                        uint64_t expectIssueTime = calExpectTime(queue[0]);                        
+                        uint64_t worstIssueTime = calWorstTime(queue[0]);
+                     
+                        uint64_t adjust_delay = 0;
+                        if (queue[0]->busPacketType != ACTIVATE)
+                        {
+                            lastIssueTime[which_domain] = expectIssueTime;
+                            lastWorstTime[which_domain] = worstIssueTime - tRCD;
+                            int expectRespTime;                            
+                            
+                            if (perDomainVios[which_domain] > VIO_LIMIT)
+                                expectRespTime = worstIssueTime + RL + BL/2;
+                            else
+                                expectRespTime = expectIssueTime - tRCD + perDomainCurD[which_domain];
+                        
+                            int delayed_cycles = (currentClockCycle + RL + BL/2) - expectRespTime;
+                        
+                            if (delayed_cycles > 0 && perDomainVios[which_domain] > VIO_LIMIT)
+                            {
+                                printf("Error! violate worst response time\n");
+                                printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+                                printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, delayed_cycles: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, delayed_cycles, worstIssueTime);
+                                exit(0);
+                            }
+                            
+                            if (delayed_cycles > 0) 
+                            {
+                                perDomainVios[which_domain]++;
+                                if (delayed_cycles < DELAY_1)
+                                    adjust_delay = DELAY_1;
+                                else if (delayed_cycles < DELAY_2)
+                                    adjust_delay = DELAY_2;
+                                else
+                                {
+                                    adjust_delay = worstIssueTime + RL + BL/2 - expectIssueTime - perDomainCurD[which_domain];
+                                    printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+                                    printf("currentClockCycle: %ld, timeAdded: %ld, expectIssueTime: %ld, adjust_delay: %ld, worstIssueTime: %ld, delayed_cycles: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime, delayed_cycles);
+                                }
+                                
+                                lastIssueTime[which_domain] += adjust_delay;
+                                if (perDomainVios[which_domain] > VIO_LIMIT)
+                                {
+                                    RP_status[which_domain] = true;
+                                    printf("Domain %d switch to RP @ cycle %ld\n", which_domain, currentClockCycle);
+                                }
+                            }
+                            
+                            // printf("addr %lx from domain %d issued\n", queue[0]->physicalAddress, queue[0]->srcId);
+//                             printf("currentClockCycle: %ld, timeAdded: %d, expectIssueTime: %d, adjust_delay: %d, worstIssueTime: %d\n", currentClockCycle, queue[0]->timeAdded, expectIssueTime, adjust_delay, worstIssueTime);
+                            
+                            perDomainTrans[which_domain]++;                                                         
+
+                            queue[0]->issueTime = expectIssueTime + adjust_delay + perDomainCurD[which_domain];
+                            queue[0]->w_issueTime = worstIssueTime;                            
+                            if (perDomainTrans[which_domain] == NUM_ACCESSES)
+                            {
+                                resetMonitoring(which_domain);
+                            }  
+                        }
+                        *busPacket = queue[0];
+                        queue.erase(queue.begin());
+                        foundIssuable = true;                 
                     }
                 }    
 
@@ -2500,7 +2858,7 @@ void CommandQueue::nextRankAndBank(unsigned &rank, unsigned &bank)
 			}
 		}
     }
-    else if (schedulingPolicy == SideChannel || schedulingPolicy == Dynamic)
+    else if (schedulingPolicy == SideChannel || schedulingPolicy == Dynamic || schedulingPolicy == Dynamic_RP)
     {
 		bank++;
 		if (bank == NUM_BANKS)
@@ -2746,19 +3104,21 @@ void CommandQueue::resetMonitoring(unsigned domain)
     //     perDomainD[domain] += 10;
     // }
     // ========== adjust b ============
-    if (perDomainVios[domain] == 0)
-    {
-        if (perDomainB[domain] > 1)
-            perDomainB[domain] -= 1;
-    }
-    else if (perDomainVios[domain] >= VIO_LIMIT)
-    {
-        perDomainB[domain] += 1;
-    }
+    // if (perDomainVios[domain] == 0)
+    // {
+    //     if (perDomainB[domain] > 1)
+    //         perDomainB[domain] -= 1;
+    // }
+    // else if (perDomainVios[domain] >= VIO_LIMIT)
+    // {
+    //     perDomainB[domain] += 1;
+    // }
     perDomainTrans[domain] = 0;
     perDomainVios[domain] = 0;
     
     perDomainCurD[domain] = perDomainD[domain];
+    
+    RP_status[domain] = false;
     
     printf("domain %d new D value: %ld\n", domain, perDomainD[domain]);
     printf("domain %d new B value: %ld\n", domain, perDomainB[domain]);

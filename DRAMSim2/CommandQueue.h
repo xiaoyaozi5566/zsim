@@ -145,6 +145,7 @@ protected:
     vector<uint64_t> perDomainB;
     vector<uint64_t> perDomainD;
     vector<uint64_t> perDomainCurD;
+    vector<bool> RP_status;
 
 	bool sendAct;
 };

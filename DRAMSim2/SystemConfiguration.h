@@ -58,7 +58,7 @@
 // #define BTR_DELAY 6
 // #define RETURN_DELAY 56
 // #define TURN_LENGTH 54
-#define B_WORST 43
+#define B_WORST 6
 #define DELAY_1 30
 #define DELAY_2 160
 
@@ -208,7 +208,8 @@ enum SchedulingPolicy
     SideChannel,
     Probability,
     AccessLimit,
-    Dynamic
+    Dynamic,
+    Dynamic_RP
 };
 
 

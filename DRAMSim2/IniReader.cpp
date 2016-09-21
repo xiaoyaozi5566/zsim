@@ -740,6 +740,14 @@ void IniReader::InitEnumsFromStrings()
 			DEBUG("SCHEDULING: Dynamic scheduling");
 		}   
     }
+    else if (SCHEDULING_POLICY == "dynamic_rp")
+    {
+        schedulingPolicy = Dynamic_RP;
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("SCHEDULING: Dynamic scheduling");
+		}   
+    }
 	else
 	{
 		cout << "WARNING: Unknown scheduling policy '"<<SCHEDULING_POLICY<<"'; valid options are 'rank_then_bank_round_robin' or 'bank_then_rank_round_robin'; defaulting to Bank Then Rank Round Robin" << endl;
