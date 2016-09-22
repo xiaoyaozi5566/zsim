@@ -1914,7 +1914,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                     uint64_t expectIssueTime = calExpectTime(queue[0]);                    
                                     uint64_t worstIssueTime = calWorstTime(queue[0]);
                                     
-                                    if (currentClockCycle >= worstIssueTime)
+                                    if (currentClockCycle >= worstIssueTime && RP_status[refreshRank] == false)
                                     {
                                         RP_status[refreshRank] = true;
                                         printf("Domain %d switch to RP @ cycle %ld due to worst time violation\n", i, currentClockCycle);
@@ -2045,7 +2045,6 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 {
                     for (size_t i=0;i<NUM_RANKS;i++)
                     {
-                        if (refreshRank == i) continue;
                         vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
                         if (!queue.empty())
                         {
