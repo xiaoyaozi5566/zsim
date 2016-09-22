@@ -1911,11 +1911,17 @@ bool CommandQueue::pop(BusPacket **busPacket)
                                 if (packet->row == bankStates[refreshRank][b].openRowAddress &&
                                         packet->bank == b)
                                 {
+                                    uint64_t expectIssueTime = calExpectTime(queue[0]);                    
+                                    uint64_t worstIssueTime = calWorstTime(queue[0]);
+                                    
+                                    if (currentClockCycle >= worstIssueTime)
+                                    {
+                                        RP_status[refreshRank] = true;
+                                        printf("Domain %d switch to RP @ cycle %ld due to worst time violation\n", i, currentClockCycle);
+                                    }
+                                    
                                     if (packet->busPacketType != ACTIVATE && isIssuable(packet) && RP_status[refreshRank] == false)
                                     {
-                                        uint64_t expectIssueTime = calExpectTime(queue[0]);                    
-                                        uint64_t worstIssueTime = calWorstTime(queue[0]);
-                        
                                         uint64_t adjust_delay = 0;
                                         if (queue[0]->busPacketType != ACTIVATE)
                                         {
@@ -2045,7 +2051,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
                         {
                             if (queue[0]->busPacketType!=ACTIVATE && isIssuable(queue[0]))
                             {
-                                queue[0]->issueTime = currentClockCycle + RL + BL/2;
+                                queue[0]->issueTime = currentClockCycle + RL + BL/2 + 1;
                                 // printf("addr %lx from domain %d issued @ cycle %ld\n", queue[0]->physicalAddress, queue[0]->srcId, currentClockCycle);
                                 lastIssueTime[current_domain] = currentClockCycle;
                                 lastWorstTime[current_domain] = currentClockCycle - tRCD;
@@ -2105,6 +2111,11 @@ bool CommandQueue::pop(BusPacket **busPacket)
                             
                             if (!((which_rank == refreshRank) && refreshWaiting && queue[0]->busPacketType == ACTIVATE))
                             {
+                                if (currentClockCycle >= worstIssueTime)
+                                {
+                                    RP_status[i] = true;
+                                    printf("Domain %d switch to RP @ cycle %ld due to worst time violation\n", i, currentClockCycle);
+                                }
                                 if (queue[0]->busPacketType == ACTIVATE)
                                 {
                                     if (isIssuable(queue[0]))

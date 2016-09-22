@@ -698,7 +698,7 @@ void MemoryController::update()
 	}
 
     //check for outstanding data to return to the CPU
-    if (schedulingPolicy == Dynamic)
+    if (schedulingPolicy == Dynamic || schedulingPolicy == Dynamic_RP)
     {
         int queueSize = returnTransaction.size();
         // allow multiple responses to be returned in a cycle
