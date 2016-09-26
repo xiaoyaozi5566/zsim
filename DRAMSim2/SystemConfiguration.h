@@ -209,7 +209,8 @@ enum SchedulingPolicy
     Probability,
     AccessLimit,
     Dynamic,
-    Dynamic_RP
+    Dynamic_RP,
+    TP
 };
 
 

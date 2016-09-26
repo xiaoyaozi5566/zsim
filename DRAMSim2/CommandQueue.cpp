@@ -870,6 +870,94 @@ bool CommandQueue::pop(BusPacket **busPacket)
                 refreshRank = -1;
             if (!foundIssuable) return false;
         }
+        else if (schedulingPolicy == TP)
+        {
+            unsigned rel_time = currentClockCycle % TURN_LENGTH;
+            unsigned current_domain = (currentClockCycle/TURN_LENGTH) % num_pids;
+            unsigned refresh_interval = int(REFRESH_PERIOD/tCK/NUM_RANKS);
+            
+            uint64_t turn_start = currentClockCycle - rel_time;
+            uint64_t turn_end = turn_start + TURN_LENGTH - 1;
+            bool has_refresh = false;
+            unsigned rank_to_refresh = 100;
+            
+            if (turn_start/refresh_interval < turn_end/refresh_interval)
+            {
+                has_refresh = true;
+                rank_to_refresh = ((turn_end/refresh_interval) % NUM_RANKS - 1 + NUM_RANKS) % NUM_RANKS;
+            }
+            
+            bool foundIssuable = false;
+            if (refreshWaiting)
+            {
+                bool foundActiveOrTooEarly = false;
+                for (size_t b=0;b<NUM_BANKS;b++)
+                {
+                    if (bankStates[refreshRank][b].nextActivate > currentClockCycle)
+                    {
+                        foundActiveOrTooEarly = true;
+                        break;
+                    }
+                }
+    			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
+    			{
+    				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, 0, dramsim_log);  				
+    				refreshWaiting = false;
+                    foundIssuable = true;
+                    finish_refresh = currentClockCycle + tRFC;
+                    // printf("issuing refresh to rank %d @ cycle %ld\n", refreshRank, currentClockCycle);
+    			}
+            }
+            else
+            {        
+                bool issueAct = true;
+                // check if there are pending rd/wr commands
+                for (size_t i=0;i<NUM_RANKS;i++)
+                {
+                    if (has_refresh && rank_to_refresh == i) continue;
+                    vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
+                    if (!queue.empty())
+                    {
+                        if (queue[0]->busPacketType != ACTIVATE)
+                        {
+                            issueAct = false;
+                            if (isIssuable(queue[0]))
+							{
+                                *busPacket = queue[0];
+                                // printf("issue rd/wr for address %lx from domain %d @ cycle %ld\n", queue[0]->physicalAddress, current_domain, currentClockCycle);
+                                queue.erase(queue.begin());
+                                foundIssuable = true;
+							}
+                            break;
+                        }
+                    }
+                }
+                if (issueAct)
+                {
+                    if (turn_end - currentClockCycle >= B_WORST - 1)
+                    {
+                        for (size_t i=0;i<NUM_RANKS;i++)
+                        {
+                            if (has_refresh && rank_to_refresh == i) continue;
+                            vector<BusPacket *> &queue = getCommandQueue(i, current_domain);
+                            if (!queue.empty())
+                            {
+                                if (queue[0]->busPacketType == ACTIVATE && isIssuable(queue[0]))
+                                {
+                                    *busPacket = queue[0];
+                                    // printf("issue activation for address %lx from domain %d @ cycle %ld\n", queue[0]->physicalAddress, current_domain, currentClockCycle);
+                                    queue.erase(queue.begin());
+                                    foundIssuable = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (!foundIssuable)
+                return false;
+        }
         else if (schedulingPolicy == SideChannel)
         {
             unsigned rel_time = currentClockCycle % BTR_DELAY;
@@ -2855,7 +2943,7 @@ void CommandQueue::nextRankAndBank(unsigned &rank, unsigned &bank)
 			}
 		}
     }
-    else if (schedulingPolicy == BankPar || schedulingPolicy == RankPar)
+    else if (schedulingPolicy == BankPar || schedulingPolicy == RankPar || schedulingPolicy == TP)
     {
 		bank++;
 		if (bank == NUM_BANKS)
