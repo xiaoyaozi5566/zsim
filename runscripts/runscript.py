@@ -29,6 +29,8 @@ systemIni_prob = "/home/yw438/zsim/DRAMSim2/system.ini.prob"
 systemIni_probmix = "/home/yw438/zsim/DRAMSim2/system.ini.probmix"
 systemIni_limit = "/home/yw438/zsim/DRAMSim2/system.ini.limit"
 systemIni_dynamic="/home/yw438/zsim/DRAMSim2/system.ini.dynamic"
+systemIni_dynamic_rp="/home/yw438/zsim/DRAMSim2/system.ini.dynamic_rp"
+systemIni_tp="/home/yw438/zsim/DRAMSim2/system.ini.tp"
 
 # remove astar due to bugs
 specint = ['perlbench', 'bzip2', 'gcc', 'mcf', 'gobmk', 'hmmer', 'sjeng', 'libquantum', 'h264ref', 'omnetpp', 'xalan']
@@ -178,28 +180,28 @@ multiprog = []
 for i in range(len(singleprog)-1):
     multiprog.append([singleprog[i], singleprog[i+1]])
 
-multiprog_8 = [
-    ['gamess', 'libquantum', 'gcc', 'dealII', 'xalan', 'gromacs', 'zeusmp', 'bzip2'] ,
-    ['tonto', 'leslie3d', 'gamess', 'gromacs', 'gamess', 'h264ref', 'mcf', 'bwaves'] ,
-    ['cactusADM', 'xalan', 'dealII', 'cactusADM', 'mcf', 'perlbench', 'libquantum', 'namd'] ,
-    ['gcc', 'cactusADM', 'h264ref', 'zeusmp', 'gamess', 'cactusADM', 'gamess', 'tonto'] ,
-    ['omnetpp', 'GemsFDTD', 'sjeng', 'tonto', 'h264ref', 'bzip2', 'gromacs', 'hmmer'] ,
-    ['sjeng', 'perlbench', 'zeusmp', 'gamess', 'leslie3d', 'leslie3d', 'gcc', 'gcc'] ,
-    ['zeusmp', 'dealII', 'sjeng', 'zeusmp', 'mcf', 'perlbench', 'zeusmp', 'zeusmp'] ,
-    ['xalan', 'gromacs', 'gcc', 'bzip2', 'dealII', 'gobmk', 'tonto', 'hmmer'] ,
-    ['zeusmp', 'xalan', 'bwaves', 'libquantum', 'libquantum', 'leslie3d', 'zeusmp', 'hmmer'] ,
-    ['namd', 'zeusmp', 'gamess', 'perlbench', 'omnetpp', 'gcc', 'tonto', 'zeusmp'] ,
-    ['milc', 'gcc', 'gromacs', 'xalan', 'lbm', 'bwaves', 'gcc', 'h264ref'] ,
-    ['perlbench', 'xalan', 'cactusADM', 'dealII', 'gobmk', 'leslie3d', 'cactusADM', 'gobmk'] ,
-    ['libquantum', 'libquantum', 'hmmer', 'GemsFDTD', 'libquantum', 'leslie3d', 'hmmer', 'omnetpp'] ,
-    ['perlbench', 'gcc', 'cactusADM', 'mcf', 'zeusmp', 'perlbench', 'omnetpp', 'libquantum'] ,
-    ['zeusmp', 'gromacs', 'h264ref', 'mcf', 'milc', 'h264ref', 'hmmer', 'bzip2'] ,
-    ['soplex', 'gamess', 'milc', 'gromacs', 'hmmer', 'sjeng', 'leslie3d', 'libquantum'] ,
-    ['omnetpp', 'bzip2', 'libquantum', 'gobmk', 'bwaves', 'tonto', 'bwaves', 'sjeng'] ,
-    ['tonto', 'xalan', 'omnetpp', 'gcc', 'tonto', 'h264ref', 'h264ref', 'hmmer'] ,
-    ['GemsFDTD', 'lbm', 'perlbench', 'bwaves', 'tonto', 'dealII', 'gromacs', 'perlbench'] ,
-    ['zeusmp', 'hmmer', 'lbm', 'leslie3d', 'mcf', 'mcf', 'mcf', 'bwaves'] ,
-]
+# multiprog_8 = [
+#     ['gamess', 'libquantum', 'gcc', 'dealII', 'xalan', 'gromacs', 'zeusmp', 'bzip2'] ,
+#     ['tonto', 'leslie3d', 'gamess', 'gromacs', 'gamess', 'h264ref', 'mcf', 'bwaves'] ,
+#     ['cactusADM', 'xalan', 'dealII', 'cactusADM', 'mcf', 'perlbench', 'libquantum', 'namd'] ,
+#     ['gcc', 'cactusADM', 'h264ref', 'zeusmp', 'gamess', 'cactusADM', 'gamess', 'tonto'] ,
+#     ['omnetpp', 'GemsFDTD', 'sjeng', 'tonto', 'h264ref', 'bzip2', 'gromacs', 'hmmer'] ,
+#     ['sjeng', 'perlbench', 'zeusmp', 'gamess', 'leslie3d', 'leslie3d', 'gcc', 'gcc'] ,
+#     ['zeusmp', 'dealII', 'sjeng', 'zeusmp', 'mcf', 'perlbench', 'zeusmp', 'zeusmp'] ,
+#     ['xalan', 'gromacs', 'gcc', 'bzip2', 'dealII', 'gobmk', 'tonto', 'hmmer'] ,
+#     ['zeusmp', 'xalan', 'bwaves', 'libquantum', 'libquantum', 'leslie3d', 'zeusmp', 'hmmer'] ,
+#     ['namd', 'zeusmp', 'gamess', 'perlbench', 'omnetpp', 'gcc', 'tonto', 'zeusmp'] ,
+#     ['milc', 'gcc', 'gromacs', 'xalan', 'lbm', 'bwaves', 'gcc', 'h264ref'] ,
+#     ['perlbench', 'xalan', 'cactusADM', 'dealII', 'gobmk', 'leslie3d', 'cactusADM', 'gobmk'] ,
+#     ['libquantum', 'libquantum', 'hmmer', 'GemsFDTD', 'libquantum', 'leslie3d', 'hmmer', 'omnetpp'] ,
+#     ['perlbench', 'gcc', 'cactusADM', 'mcf', 'zeusmp', 'perlbench', 'omnetpp', 'libquantum'] ,
+#     ['zeusmp', 'gromacs', 'h264ref', 'mcf', 'milc', 'h264ref', 'hmmer', 'bzip2'] ,
+#     ['soplex', 'gamess', 'milc', 'gromacs', 'hmmer', 'sjeng', 'leslie3d', 'libquantum'] ,
+#     ['omnetpp', 'bzip2', 'libquantum', 'gobmk', 'bwaves', 'tonto', 'bwaves', 'sjeng'] ,
+#     ['tonto', 'xalan', 'omnetpp', 'gcc', 'tonto', 'h264ref', 'h264ref', 'hmmer'] ,
+#     ['GemsFDTD', 'lbm', 'perlbench', 'bwaves', 'tonto', 'dealII', 'gromacs', 'perlbench'] ,
+#     ['zeusmp', 'hmmer', 'lbm', 'leslie3d', 'mcf', 'mcf', 'mcf', 'bwaves'] ,
+# ]
 
 # multiprog_8 = [
 #     ['xalan', 'xalan', 'soplex', 'soplex', 'mcf', 'mcf', 'omnetpp', 'omnetpp'],
@@ -213,58 +215,58 @@ multiprog_8 = [
 #     ['xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan']
 # ]
 #
-# multiprog_8 = [
-#     ['perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench'] ,
-#     ['bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2'] ,
-#     ['gcc', 'gcc', 'gcc', 'gcc', 'gcc', 'gcc', 'gcc', 'gcc'] ,
-#     ['mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf'] ,
-#     ['gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk'] ,
-#     ['hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer'] ,
-#     ['sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng'] ,
-#     ['libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum'] ,
-#     ['h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref'] ,
-#     ['omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp'] ,
-#     ['xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan'] ,
-#     ['bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves'] ,
-#     ['gamess', 'gamess', 'gamess', 'gamess', 'gamess', 'gamess', 'gamess', 'gamess'] ,
-#     ['milc', 'milc', 'milc', 'milc', 'milc', 'milc', 'milc', 'milc'] ,
-#     ['zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp'] ,
-#     ['gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs'] ,
-#     ['cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM'] ,
-#     ['leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d'] ,
-#     ['namd', 'namd', 'namd', 'namd', 'namd', 'namd', 'namd', 'namd'] ,
-#     ['dealII', 'dealII', 'dealII', 'dealII', 'dealII', 'dealII', 'dealII', 'dealII'] ,
-#     ['soplex', 'soplex', 'soplex', 'soplex', 'soplex', 'soplex', 'soplex', 'soplex'] ,
-#     ['GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD'] ,
-#     ['tonto', 'tonto', 'tonto', 'tonto', 'tonto', 'tonto', 'tonto', 'tonto'] ,
-#     ['lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm']
-# ]
+multiprog_8 = [
+    ['perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench', 'perlbench'] ,
+    ['bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2', 'bzip2'] ,
+    ['gcc', 'gcc', 'gcc', 'gcc', 'gcc', 'gcc', 'gcc', 'gcc'] ,
+    ['mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf', 'mcf'] ,
+    ['gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk', 'gobmk'] ,
+    ['hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer', 'hmmer'] ,
+    ['sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng', 'sjeng'] ,
+    ['libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum', 'libquantum'] ,
+    ['h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref', 'h264ref'] ,
+    ['omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp', 'omnetpp'] ,
+    ['xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan', 'xalan'] ,
+    ['bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves', 'bwaves'] ,
+    ['gamess', 'gamess', 'gamess', 'gamess', 'gamess', 'gamess', 'gamess', 'gamess'] ,
+    ['milc', 'milc', 'milc', 'milc', 'milc', 'milc', 'milc', 'milc'] ,
+    ['zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp', 'zeusmp'] ,
+    ['gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs', 'gromacs'] ,
+    ['cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM', 'cactusADM'] ,
+    ['leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d'] ,
+    ['namd', 'namd', 'namd', 'namd', 'namd', 'namd', 'namd', 'namd'] ,
+    ['dealII', 'dealII', 'dealII', 'dealII', 'dealII', 'dealII', 'dealII', 'dealII'] ,
+    ['soplex', 'soplex', 'soplex', 'soplex', 'soplex', 'soplex', 'soplex', 'soplex'] ,
+    ['GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD'] ,
+    ['tonto', 'tonto', 'tonto', 'tonto', 'tonto', 'tonto', 'tonto', 'tonto'] ,
+    ['lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm', 'lbm']
+]
 
 multiprog_4 = [
-    ['perlbench', 'perlbench', 'perlbench', 'perlbench'] ,
-    ['bzip2', 'bzip2', 'bzip2', 'bzip2'] ,
-    ['gcc', 'gcc', 'gcc', 'gcc'] ,
-    ['mcf', 'mcf', 'mcf', 'mcf'] ,
-    ['gobmk', 'gobmk', 'gobmk', 'gobmk'] ,
-    ['hmmer', 'hmmer', 'hmmer', 'hmmer'] ,
-    ['sjeng', 'sjeng', 'sjeng', 'sjeng'] ,
-    ['libquantum', 'libquantum', 'libquantum', 'libquantum'] ,
-    ['h264ref', 'h264ref', 'h264ref', 'h264ref'] ,
-    ['omnetpp', 'omnetpp', 'omnetpp', 'omnetpp'] ,
-    ['xalan', 'xalan', 'xalan', 'xalan'] ,
-    ['bwaves', 'bwaves', 'bwaves', 'bwaves'] ,
-    ['gamess', 'gamess', 'gamess', 'gamess'] ,
-    ['milc', 'milc', 'milc', 'milc'] ,
-    ['zeusmp', 'zeusmp', 'zeusmp', 'zeusmp'] ,
-    ['gromacs', 'gromacs', 'gromacs', 'gromacs'] ,
-    ['cactusADM', 'cactusADM', 'cactusADM', 'cactusADM'] ,
-    ['leslie3d', 'leslie3d', 'leslie3d', 'leslie3d', 'leslie3d'] ,
-    ['namd', 'namd', 'namd', 'namd'] ,
-    ['dealII', 'dealII', 'dealII', 'dealII'] ,
-    ['soplex', 'soplex', 'soplex', 'soplex'] ,
-    ['GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD'] ,
-    ['tonto', 'tonto', 'tonto', 'tonto'] ,
-    ['lbm', 'lbm', 'lbm', 'lbm'] 
+    # ['perlbench', 'perlbench', 'perlbench', 'perlbench'] ,
+    # ['bzip2', 'bzip2', 'bzip2', 'bzip2'] ,
+    # ['gcc', 'gcc', 'gcc', 'gcc'] ,
+    # ['mcf', 'mcf', 'mcf', 'mcf'] ,
+    # ['gobmk', 'gobmk', 'gobmk', 'gobmk'] ,
+    # ['hmmer', 'hmmer', 'hmmer', 'hmmer'] ,
+    # ['sjeng', 'sjeng', 'sjeng', 'sjeng'] ,
+    # ['libquantum', 'libquantum', 'libquantum', 'libquantum'] ,
+    # ['h264ref', 'h264ref', 'h264ref', 'h264ref'] ,
+    # ['omnetpp', 'omnetpp', 'omnetpp', 'omnetpp'] ,
+    # ['xalan', 'xalan', 'xalan', 'xalan'] ,
+    # ['bwaves', 'bwaves', 'bwaves', 'bwaves'] ,
+    # ['gamess', 'gamess', 'gamess', 'gamess'] ,
+    # ['milc', 'milc', 'milc', 'milc'] ,
+    # ['zeusmp', 'zeusmp', 'zeusmp', 'zeusmp'] ,
+    # ['gromacs', 'gromacs', 'gromacs', 'gromacs'] ,
+    # ['cactusADM', 'cactusADM', 'cactusADM', 'cactusADM'] ,
+    ['leslie3d', 'leslie3d', 'leslie3d', 'leslie3d'] ,
+    # ['namd', 'namd', 'namd', 'namd'] ,
+    # ['dealII', 'dealII', 'dealII', 'dealII'] ,
+    # ['soplex', 'soplex', 'soplex', 'soplex'] ,
+    # ['GemsFDTD', 'GemsFDTD', 'GemsFDTD', 'GemsFDTD'] ,
+    # ['tonto', 'tonto', 'tonto', 'tonto'] ,
+    # ['lbm', 'lbm', 'lbm', 'lbm']
 ]
 
 multiprog_2 = [
@@ -707,8 +709,8 @@ def singleprogs_parsec():
         
         os.system("condor_submit " + scriptgen_dir + "/" + filename)
 
-def generate_ini(limit, period):
-    filename = "system.ini.dynamic." + str(limit) + "." + str(period)
+def generate_ini(limit, period, b_value, d_value):
+    filename = "system.ini.dynamic." + str(b_value) + "." + str(d_value)
     # create ini file
     ini_file = open(dramsim_dir + "/" + filename, "w")
     ini =  "NUM_CHANS=1\n"
@@ -729,8 +731,8 @@ def generate_ini(limit, period):
     ini += "USE_RANDOM_ADDR=true\n"
     ini += "USE_BETTER_SCHEDULE=false\n"
     ini += "USE_MIX=false\n"
-    ini += "DYNAMIC_B=6\n"
-    ini += "DYNAMIC_D=160\n"
+    ini += "DYNAMIC_B=" + str(b_value) + "\n"
+    ini += "DYNAMIC_D=" + str(d_value) + "\n"
     ini += "NUM_ACCESSES=" + str(period) + "\n"
     ini += "VIO_LIMIT=" + str(limit) + "\n"
     ini += "USE_RANK_PAR=false\n"
@@ -819,6 +821,21 @@ def generate_ini(limit, period):
 # systemIni = systemIni_smart
 # multiprogs_DRAMSim2()
 #
+# # TP scheduling
+# folder = "TP_2_256"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_tp
+# multiprogs_DRAMSim2()
+#
 # # Four programs
 # workloads = multiprog_4
 # # baseline scheme
@@ -881,6 +898,21 @@ def generate_ini(limit, period):
 # systemIni = systemIni_smart
 # multiprogs_DRAMSim2()
 #
+# # TP scheduling
+# folder = "TP_4_512"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_tp
+# multiprogs_DRAMSim2()
+#
 # # Eight programs
 # workloads = multiprog_8
 # # baseline scheme
@@ -941,6 +973,21 @@ def generate_ini(limit, period):
 #     os.makedirs(stderr_dir + "/" + folder)
 #
 # systemIni = systemIni_smart
+# multiprogs_DRAMSim2()
+#
+# # TP scheduling
+# folder = "TP_8_256"
+#
+# if not os.path.exists(results_dir + "/" + folder):
+#     os.makedirs(results_dir + "/" + folder)
+#
+# if not os.path.exists(stdout_dir + "/" + folder):
+#     os.makedirs(stdout_dir + "/" + folder)
+#
+# if not os.path.exists(stderr_dir + "/" + folder):
+#     os.makedirs(stderr_dir + "/" + folder)
+#
+# systemIni = systemIni_tp
 # multiprogs_DRAMSim2()
 #
 # # Random address mapping
@@ -1298,22 +1345,27 @@ workloads = multiprog_8
 # multiprogs_parsec()
 
 # Dynamic scheduling
-limit = 3
+limits = [3]
 periods = [1000, 10000, 100000, 1000000]
-name = "dynamic_enforce_DynaBD_6_160_" + str(limit)
-for period in periods:
-    folder = name + "_" + str(period)
+# b_values = [3, 6, 18]
+b_value = 6
+# d_values = [64, 128, 256]
+d_value = 160
+name = "dynamic_enforce_samebench_DynaD_6_160"
+for limit in limits:
+    for period in periods:
+        folder = name + "_" + str(limit) + "_" + str(period)
 
-    if not os.path.exists(results_dir + "/" + folder):
-        os.makedirs(results_dir + "/" + folder)
+        if not os.path.exists(results_dir + "/" + folder):
+            os.makedirs(results_dir + "/" + folder)
 
-    if not os.path.exists(stdout_dir + "/" + folder):
-        os.makedirs(stdout_dir + "/" + folder)
+        if not os.path.exists(stdout_dir + "/" + folder):
+            os.makedirs(stdout_dir + "/" + folder)
 
-    if not os.path.exists(stderr_dir + "/" + folder):
-        os.makedirs(stderr_dir + "/" + folder)
-        
-    generate_ini(limit, period)
-    systemIni = systemIni_dynamic + "." + str(limit) + "." + str(period)
-    multiprogs_DRAMSim2(period)
-    time.sleep(2)
+        if not os.path.exists(stderr_dir + "/" + folder):
+            os.makedirs(stderr_dir + "/" + folder)
+
+        generate_ini(limit, period, b_value, d_value)
+        systemIni = systemIni_dynamic + "." + str(limit) + "." + str(period)
+        multiprogs_DRAMSim2(period)
+        time.sleep(2)
